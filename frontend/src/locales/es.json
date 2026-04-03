@@ -1,0 +1,61 @@
+{
+    "translation": {
+        "nav": {
+            "dashboard": "Explorar Dashboard",
+            "flights": "Buscar Vuelos",
+            "bookings": "Mis Reservas",
+            "routes": "Rutas Óptimas",
+            "settings": "Configuración"
+        },
+        "common": {
+            "search": "Buscar",
+            "select": "Seleccionar",
+            "back": "Volver",
+            "confirm": "Confirmar",
+            "cancel": "Cancelar",
+            "loading": "Cargando...",
+            "success": "¡Operación Exitosa!",
+            "error": "Error"
+        },
+        "home": {
+            "title": "Dashboard Sistema Distribuido",
+            "subtitle": "Monitoreo en tiempo real de vuelos y reservas.",
+            "stats": {
+                "airports": "Aeropuertos",
+                "active_flights": "Vuelos Activos",
+                "passengers": "Pasajeros",
+                "latency": "Avg. Latencia"
+            }
+        },
+        "search": {
+            "title": "Encuentra tu próximo destino",
+            "subtitle": "Explora miles de rutas en nuestra red distribuida de alta disponibilidad.",
+            "origin": "Origen",
+            "destination": "Destino",
+            "date": "Fecha",
+            "no_results": "No se encontraron vuelos."
+        },
+        "booking": {
+            "seat_map": "Mapa de Asientos",
+            "available": "Disponible",
+            "reserved": "Reservado",
+            "occupied": "Ocupado",
+            "selected": "Seleccionado",
+            "summary": "Resumen del Vuelo",
+            "reserve": "Reservar Temporalmente",
+            "buy": "Comprar Ahora",
+            "download_pdf": "Descargar Boleto PDF",
+            "return_home": "Volver al Inicio"
+        },
+        "routes": {
+            "cheapest": "Menor Costo",
+            "fastest": "Menor Tiempo",
+            "tsp": "Múltiples Destinos (TSP)",
+            "calculate": "Calcular Ruta Óptima",
+            "itinerary": "Itinerario Calculado",
+            "origin": "Origen",
+            "destination": "Destino",
+            "via": "Escalas (separadas por coma)"
+        }
+    }
+}

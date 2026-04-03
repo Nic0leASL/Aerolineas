@@ -1,0 +1,41 @@
+# Node
+node_modules/
+dist/
+build/
+coverage/
+.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# VS Code
+.vscode/
+
+# Visual Studio
+.vs/
+bin/
+obj/
+*.user
+*.suo
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.env/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Extras recomendados 👇
+*.zip
+*.tmp
+*.bak
+
+# ⚠️ OPCIONAL (solo si NO quieres subir dataset)
+# *.csv

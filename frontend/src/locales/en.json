@@ -1,0 +1,61 @@
+{
+    "translation": {
+        "nav": {
+            "dashboard": "Explore Dashboard",
+            "flights": "Search Flights",
+            "bookings": "My Bookings",
+            "routes": "Optimal Routes",
+            "settings": "Settings"
+        },
+        "common": {
+            "search": "Search",
+            "select": "Select",
+            "back": "Back",
+            "confirm": "Confirm",
+            "cancel": "Cancel",
+            "loading": "Loading...",
+            "success": "Success!",
+            "error": "Error"
+        },
+        "home": {
+            "title": "Distributed System Dashboard",
+            "subtitle": "Real-time monitoring of flights and reservations.",
+            "stats": {
+                "airports": "Airports",
+                "active_flights": "Active Flights",
+                "passengers": "Passengers",
+                "latency": "Avg. Latency"
+            }
+        },
+        "search": {
+            "title": "Find your next destination",
+            "subtitle": "Explore thousands of routes in our high-availability distributed network.",
+            "origin": "Origin",
+            "destination": "Destination",
+            "date": "Date",
+            "no_results": "No flights found."
+        },
+        "booking": {
+            "seat_map": "Seat Map",
+            "available": "Available",
+            "reserved": "Reserved",
+            "occupied": "Occupied",
+            "selected": "Selected",
+            "summary": "Flight Summary",
+            "reserve": "Temporary Reserve",
+            "buy": "Buy Now",
+            "download_pdf": "Download Ticket PDF",
+            "return_home": "Return Home"
+        },
+        "routes": {
+            "cheapest": "Cheapest Route",
+            "fastest": "Fastest Route",
+            "tsp": "Multi-Destination (TSP)",
+            "calculate": "Calculate Optimal Route",
+            "itinerary": "Calculated Itinerary",
+            "origin": "Origin",
+            "destination": "Destination",
+            "via": "Waypoints (comma separated)"
+        }
+    }
+}
