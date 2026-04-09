@@ -1,58 +1,60 @@
-# Sistema Distribuido de Reservas - Backend
+# Sistema Distribuido de Aerolíneas - Backend
 
-## Descripción
+## Descripción General
 
-Backend distribuido que simula 3 servidores independientes de un sistema de reservas. Cada nodo puede funcionar de manera independiente o en coordinación con otros nodos.
+Este proyecto consiste en un ecosistema backend distribuido de alta exigencia, diseñado para manejar reservas de vuelos aéreos de "Aerolíneas Rafael Pabón". En su iteración actual, la plataforma simula nodos independientes coordinados para transitar un flujo estricto de venta de boletos.
 
-## Estructura del Proyecto
+El aspecto central y diferenciador del proyecto es el uso del **Teorema CAP orientado a CP** (Consistencia Absoluta ante Particiones). El sistema detiene totalmente la venta de pasajes frente a caídas de red o desincronizaciones de estado para evitar, bajo cualquier circunstancia, instancias de *Double Booking* (Venta de boletos duplicados en asientos idénticos).
 
+## Arquitectura de Datos y "Espejos Vivos"
+
+En lugar de almacenar datos en configuraciones de memoria (Mocks) que carecen de solidez transaccional, el proyecto aprovecha una arquitectura híbrida:
+
+### 1. Sistema Transaccional: Microsoft SQL Server (Docker)
+- Se cuenta con **2 Servidores de SQL (Espejos Vivos)** corriendo en Docker que simulan un escenario multi-master.
+- **Salto de Llave de Identidad**: Para evitar colisiones en tablas R/W, el Espejo 1 tiene un `IDENTITY(1,2)` (claves impares) y el Espejo 2 tiene `IDENTITY(2,2)` (claves pares).
+- Si la conexión SQL falla, el servicio aborta, asegurándose de evitar reservas concurrentes sucias (Nivel de Aislamiento `SERIALIZABLE` con bloqueos `UPDLOCK`).
+
+### 2. Catálogo Distribuido e Histórico: MongoDB (Atlas)
+- Toda la base de datos de vuelos listados, metadatos espaciales y flujos de rutas se alberga asíncronamente en instancias de base de datos no relacionales de Atlas en la Nube. La lectura de operaciones de vuelo está blindada contra la saturación transaccional.
+
+## Reglas de Negocio Estrictas
+
+1. **Vuelos Inmutables**: Siguiendo las directrices corporativas, los vuelos generados en la base de datos **nunca pueden retrasarse ni cancelarse**. Los estados pasaron a ser exclusivamente `SCHEDULED`, `BOARDING`, `DEPARTED`, `IN_FLIGHT`, `LANDED`, y `ARRIVED`.
+2. **CP sobre AP**: Ante pérdida de paquetes entre los nodos distribuidos, el sistema sacrifica total disponibilidad en pos de asegurar la tabla transaccional compartida entre MSSQL 1 y MSSQL 2.
+
+---
+
+## Instrucciones de Despliegue (Cómo levantar este Ecosistema)
+
+Para poder ejecutar la plataforma de extremo a extremo, es necesario prender ambos ecosistemas (DB y Backend).
+
+### Paso 1: Configurar Variables de Entorno (`.env`)
+Asegúrate de copiar el archivo `backend/.env.example` en `backend/.env`.
+Asegúrate de tener un cluster de MongoDB listo o el servicio local.
+Asegúrate de que estás inyectando tu propia IP autenticada de Cloud (`MONGO_URI`).
+
+### Paso 2: Iniciar Clústeres Transaccionales MSSQL
+Necesitas Docker abierto en tu máquina. Ve a la carpeta raíz del proyecto y enciende los "Espejos Vivos":
+```bash
+docker-compose up -d
 ```
-backend/
-├── src/
-│   ├── config/
-│   │   └── nodeConfig.js          # Configuración de los 3 nodos
-│   ├── controllers/
-│   │   └── ReservationController.js # Lógica de control de reservas
-│   ├── routes/
-│   │   ├── reservationRoutes.js    # Rutas de reservas
-│   │   └── healthRoutes.js         # Rutas de salud del sistema
-│   ├── services/
-│   │   └── ReservationService.js   # Lógica de negocio
-│   ├── models/
-│   │   └── Reservation.js          # Modelo de datos de reserva
-│   ├── utils/
-│   │   ├── logger.js               # Sistema de logging
-│   │   └── communication.js        # Utilidades de comunicación entre nodos
-│   ├── data/
-│   │   └── mockData.js             # Datos de ejemplo
-│   └── index.js                    # Servidor principal
-├── .env                            # Variables de entorno
-├── .env.example                    # Plantilla de ENV
-├── package.json                    # Dependencias del proyecto
-└── README.md                       # Este archivo
+*(Esto instalará los motores de Base de Datos y correrá los scripts iniciales que configuran el Salto de Identidad).*
+
+### Paso 3: Instalar Dependencias NodeJS
+Ve nuevamente a la carpeta `backend/` y descarga todos los submódulos, transaccionales (`mssql`) y de nube (`mongoose`):
+```bash
+npm install
 ```
 
-## Nodos Configurados
+### Paso 4: Migración y Sembrado (The Seeder)
+Si hiciste cambios a los Archivos `.csv` de vuelos, o quieres limpiar la plataforma para ponerla lista a la acción, contamos con un comando que borra, trunca ambas bases y resube todo de vuelta con un *InsertMasivo*:
+```bash
+npm run seed:data
+```
 
-- **Nodo 1**: Puerto 3001 - `http://localhost:3001`
-- **Nodo 2**: Puerto 3002 - `http://localhost:3002`
-- **Nodo 3**: Puerto 3003 - `http://localhost:3003`
-
-## Instalación
-
-1. **Instalar dependencias:**
-   ```bash
-   npm install
-   ```
-
-2. **Configurar variables de entorno:**
-   - Los archivos `.env` y `.env.example` ya están configurados
-   - Personalizarlos según necesidades
-
-## Uso
-
-### Ejecutar un nodo específico
-
+### Paso 5: Encender los Microservicios/Nodos
+Puedes encender nodos por separado para emular el flujo distribuido.
 ```bash
 # Nodo 1
 npm run node1
@@ -63,122 +65,21 @@ npm run node2
 # Nodo 3
 npm run node3
 ```
-
-### Ejecutar todos los nodos a la vez
-
+O encender el clúster entero de Node:
 ```bash
 npm run all
 ```
 
-### Modo desarrollo (con hot-reload)
+---
 
-```bash
-npm run dev
-```
+## Herramientas Previas
+El sistema conserva por debajo sus lógicas de comunicación asincrónica originarias:
+- **Relojes de Lamport**: Ordenamiento absoluto frente a la deriva de tiempo.
+- **Relojes Vectoriales**: Matrices para ubicar cruces e hitos temporales entre nodos.
+- **Detección de Conflictos**: Los microservicios detectarán un choque, e interrogarán a la capa de SQL para validación.
 
-## Endpoints Disponibles
-
-### Health Check
-- `GET /health` - Verificar salud del nodo
-- `GET /health/stats` - Estadísticas del nodo
-- `GET /health/info` - Información del nodo
-
-### Reservas
-- `GET /reservations` - Obtener todas las reservas
-- `GET /reservations/:id` - Obtener reserva específica
-- `POST /reservations` - Crear nueva reserva
-- `PUT /reservations/:id` - Actualizar reserva
-- `DELETE /reservations/:id` - Eliminar reserva
-
-### Raíz
-- `GET /` - Información general del servidor
-
-## Ejemplos de Uso
-
-### Crear una reserva
-
-```bash
-curl -X POST http://localhost:3001/reservations \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userId": "user_001",
-    "resourceId": "sala_1",
-    "startTime": "2024-04-02T10:00:00Z",
-    "endTime": "2024-04-02T12:00:00Z"
-  }'
-```
-
-### Obtener todas las reservas
-
-```bash
-curl http://localhost:3001/reservations
-```
-
-### Obtener estadísticas de un nodo
-
-```bash
-curl http://localhost:3001/health/stats
-```
-
-## Características
-
-- ✅ Estructura limpia y modular
-- ✅ 3 nodos configurados y listos para usar
-- ✅ Sistema de logging integrado
-- ✅ Validación de datos
-- ✅ Manejo de errores global
-- ✅ Comunicación entre nodos
-- ✅ Variables de entorno configurables
-- ✅ CORS habilitado para peticiones cruzadas
-- ✅ **TICKET #7**: Lamport Clocks para ordenamiento de eventos
-- ✅ **TICKET #8**: Vector Clocks para detección de causalidad y concurrencia
-
-## Tickets Implementados
-
-### TICKET #7: Lamport Clocks
-Sistema de relojes lógicos Lamport para ordenamiento total de eventos distribuidos.
-- **Documentación**: [TICKET_7_LAMPORT.md](TICKET_7_LAMPORT.md)
-- **Endpoints**: `/sync/clock`, `/sync/ordered-events`, `/sync/causality-matrix`
-
-### TICKET #8: Vector Clocks
-Sistema de relojes vectoriales para detección de causalidad y eventos concurrentes.
-- **Documentación**: [TICKET_8_VECTOR_CLOCKS.md](TICKET_8_VECTOR_CLOCKS.md)
-- **Guía de Uso**: [VECTOR_CLOCK_USAGE.md](VECTOR_CLOCK_USAGE.md)
-- **Endpoints**: `/sync/vector-clock`, `/sync/vector-history`, `/sync/concurrent-events`
-- **Scripts de Testing**: `test_ticket_8_complete.ps1`, `test_ticket_8.ps1`
-
-## Variables de Entorno
-
-```
-NODE_ENV=development          # Ambiente
-NODE_ID=1                     # ID del nodo a ejecutar
-NODE_1_PORT=3001              # Puerto del nodo 1
-NODE_2_PORT=3002              # Puerto del nodo 2
-NODE_3_PORT=3003              # Puerto del nodo 3
-LOG_LEVEL=info                # Nivel de log (error, warn, info, debug)
-```
-
-## Próximos Pasos
-
-- **TICKET #9**: Resolución de conflictos basada en Vector Clocks
-- **TICKET #10**: Dashboard de visualización de causalidad
-- **TICKET #11**: Optimizaciones de Vector Clock para muchos nodos
-- **TICKET #12**: Tests de consistencia eventual con Vector Clocks
-- Agregar base de datos persistente
-- Implementar algoritmos de consenso distribuido
-- Agregar autenticación
-- Implementar caché distribuido
-
-## Notas
-
-- Los datos se almacenan en memoria (no persistentes)
-- Para pruebas locales, asegurar que los puertos 3001-3003 están disponibles
-- Usar `Ctrl+C` para detener los servidores
-
-## Tecnologías Utilizadas
-
-- **Node.js** - Runtime de JavaScript
-- **Express.js** - Framework web
-- **dotenv** - Gestión de variables de entorno
-- **axios** - Cliente HTTP
-- **cors** - Cross-Origin Resource Sharing
+## Stack
+- **JavaScript (ES Modules)** -> Runtime Node
+- **Microsoft SQL Server 2022** -> Docker Compose (Transacciones CP)
+- **MongoDB** -> Nube (Atlas / Mongoose ORM)
+- **ReactJS** -> Frontend UI Dashboard con Visión Corporativa

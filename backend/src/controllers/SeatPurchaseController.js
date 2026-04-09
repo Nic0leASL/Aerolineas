@@ -4,6 +4,7 @@
  */
 
 import Logger from '../utils/logger.js';
+import { getConnection, sql } from '../config/db.js';
 
 const logger = new Logger(process.env.LOG_LEVEL || 'info');
 
@@ -151,16 +152,55 @@ export class SeatPurchaseController {
       };
 
       // Intentar hacer la compra
-      const booking = this.flightService.bookSeat(bookingData);
+      let booking = null;
+      let transaction = null;
 
-      if (!booking) {
-        return res.status(409).json({
-          success: false,
-          error: 'No se puede completar la compra. El asiento puede estar vendido.',
-          flightId: flightId,
-          seatNumber: seatNumber,
-          nodeId: this.nodeId
-        });
+      try {
+          const pool = await getConnection();
+          transaction = new sql.Transaction(pool);
+          
+          await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+          const request = new sql.Request(transaction);
+
+          // 1. Verificación Fuerte de SQL Server con Bloqueo Exclusivo (UPDLOCK)
+          const checkStatus = await request.query(`
+              SELECT Status FROM Tickets WITH (UPDLOCK, SERIALIZABLE)
+              WHERE FlightId = '${flightId}' AND SeatNumber = '${seatNumber}'
+          `);
+
+          if (checkStatus.recordset.length > 0 && checkStatus.recordset[0].Status === 'BOOKED') {
+              throw new Error('Doble reserva evitada (SQL Server Reject)');
+          }
+
+          // 2. Inserción (Generación de clave identidad ocurrirá con Salto de Llave por DB Schema)
+          await request.query(`
+              INSERT INTO Tickets (FlightId, SeatNumber, PassengerId, PassengerName, Email, PhoneNumber, TicketPrice, Status)
+              VALUES ('${flightId}', '${seatNumber}', '${passengerId}', '${passengerName}', '${email}', '${phoneNumber || ''}', ${ticketPrice}, 'BOOKED')
+          `);
+
+          await transaction.commit();
+          
+          booking = {
+              id: Date.now(), 
+              confirmationCode: Math.random().toString(36).substring(2, 10).toUpperCase(),
+              bookedAt: new Date().toISOString()
+          };
+          
+          // Opcionalmente actualizar el simulador Legacy de Ram (mantener logica original estable)
+          this.flightService.bookSeat(bookingData);
+
+      } catch (err) {
+          if (transaction) {
+               try { await transaction.rollback(); } catch(e) {}
+          }
+          logger.error('Transacción SQL rechazada por Control de Concurrencia', { error: err.message });
+          return res.status(409).json({
+              success: false,
+              error: 'Concurrencia rechazada por BDD: Otro nodo compró o reservó este asiento simultáneamente (Prioridad C en CAP).',
+              flightId: flightId,
+              seatNumber: seatNumber,
+              nodeId: this.nodeId
+          });
       }
 
       // Actualizar ingresos

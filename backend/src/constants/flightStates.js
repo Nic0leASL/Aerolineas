@@ -8,23 +8,19 @@ export const FLIGHT_STATES = {
   DEPARTED: 'DEPARTED',        // Despegó
   IN_FLIGHT: 'IN_FLIGHT',      // En vuelo
   LANDED: 'LANDED',            // Aterrizó
-  ARRIVED: 'ARRIVED',          // Llegó al destino
-  DELAYED: 'DELAYED',          // Retrasado
-  CANCELLED: 'CANCELLED'       // Cancelado
+  ARRIVED: 'ARRIVED'           // Llegó al destino
 };
 
 /**
  * Transiciones válidas entre estados
  */
 export const VALID_STATE_TRANSITIONS = {
-  SCHEDULED: ['BOARDING', 'DELAYED', 'CANCELLED'],
-  BOARDING: ['DEPARTED', 'DELAYED', 'CANCELLED'],
-  DEPARTED: ['IN_FLIGHT', 'DELAYED'],
-  IN_FLIGHT: ['LANDED', 'DELAYED'],
+  SCHEDULED: ['BOARDING'],
+  BOARDING: ['DEPARTED'],
+  DEPARTED: ['IN_FLIGHT'],
+  IN_FLIGHT: ['LANDED'],
   LANDED: ['ARRIVED'],
-  ARRIVED: [],
-  DELAYED: ['BOARDING', 'DEPARTED', 'IN_FLIGHT', 'LANDED', 'ARRIVED', 'CANCELLED'],
-  CANCELLED: []
+  ARRIVED: []
 };
 
 /**

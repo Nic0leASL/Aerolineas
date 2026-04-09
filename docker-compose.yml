@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  sqlserver1:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=SuperSecretSQL1!
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - ./db1-init.sql:/docker-entrypoint-initdb.d/init.sql
+    # En MSSQL la inicialización automática con init.sql en este directorio a veces requiere un script custom,
+    # pero para el entorno de desarrollo podemos ejecutar el volumen o indicarle al usuario que lo corra.
+    command: /bin/bash -c "/opt/mssql/bin/sqlservr & sleep 20 && /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'SuperSecretSQL1!' -d master -i /docker-entrypoint-initdb.d/init.sql && wait"
+
+  sqlserver2:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=SuperSecretSQL2!
+      - MSSQL_PID=Developer
+    ports:
+      - "1434:1433"
+    volumes:
+      - ./db2-init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: /bin/bash -c "/opt/mssql/bin/sqlservr & sleep 20 && /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'SuperSecretSQL2!' -d master -i /docker-entrypoint-initdb.d/init.sql && wait"

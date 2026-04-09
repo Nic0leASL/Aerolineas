@@ -38,6 +38,28 @@ const Home = () => {
                 <p style={{ color: 'hsl(var(--text-muted))', fontSize: '1.125rem' }}>{t('home.subtitle')}</p>
             </header>
 
+            {/* Visión Institucional de Aerolíneas Rafael Pabón */}
+            <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '32px', padding: '32px', borderRadius: 'var(--radius-xl)', background: 'linear-gradient(135deg, hsla(var(--primary) / 0.1) 0%, hsla(var(--accent) / 0.05) 100%)' }}>
+                <div style={{ flex: '0 0 160px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'hsl(var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px hsla(var(--primary) / 0.3)' }}>
+                        <Plane size={64} color="white" />
+                    </div>
+                </div>
+                <div style={{ flex: '1' }}>
+                    <h2 style={{ fontSize: '1.75rem', marginBottom: '16px', color: 'hsl(var(--primary))' }}>Aerolíneas Rafael Pabón</h2>
+                    <p style={{ fontSize: '1.125rem', lineHeight: '1.7', color: 'hsl(var(--text-dim))' }}>
+                        Aerolíneas Rafael Pabon, opera vuelos a múltiples destinos alrededor del mundo. La aerolínea ha decidido
+                        implementar un sistema de reservas en línea distribuido para manejar las operaciones de reserva, venta y
+                        anulación de boletos aéreos. Este sistema debe asegurar la consistencia y sincronización entre los diferentes
+                        nodos distribuidos para evitar la sobreventa de boletos y garantizar una experiencia de usuario fluida y precisa.
+                    </p>
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
+                        <span style={{ fontSize: '0.875rem', padding: '6px 16px', background: 'hsla(var(--primary) / 0.1)', color: 'hsl(var(--primary))', borderRadius: '20px', fontWeight: '600' }}>Sistema CP (Consistencia Estricta)</span>
+                        <span style={{ fontSize: '0.875rem', padding: '6px 16px', background: 'hsla(var(--success) / 0.1)', color: 'hsl(var(--success))', borderRadius: '20px', fontWeight: '600' }}>Cero Retrasos / Cero Cancelaciones</span>
+                    </div>
+                </div>
+            </div>
+
             {/* Global Metrics */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
                 <DashboardCard

@@ -10,7 +10,8 @@
     "node1": "cross-env NODE_ID=1 node src/index.js",
     "node2": "cross-env NODE_ID=2 node src/index.js",
     "node3": "cross-env NODE_ID=3 node src/index.js",
-    "all": "npm run node1 & npm run node2 & npm run node3"
+    "all": "npm run node1 & npm run node2 & npm run node3",
+    "seed:data": "node src/scripts/seedData.js"
   },
   "keywords": [
     "distributed",
@@ -23,7 +24,9 @@
     "axios": "^1.6.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "mongose": "^0.0.2-security",
+    "mssql": "^12.2.1"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
