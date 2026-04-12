@@ -105,17 +105,16 @@ const MainLayout = ({ children }) => {
             {/* Sidebar */}
             <aside className="sidebar">
                 <div className="logo-section" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px' }}>
-                    <div style={{ padding: '8px', background: 'hsl(var(--primary))', borderRadius: '10px' }}>
-                        <Plane size={24} color="white" />
+                    <div style={{ padding: '0px', background: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src="/logo.png" alt="Rafael Pabon Logo" style={{ width: '46px', height: '46px', objectFit: 'contain' }} />
                     </div>
-                    <h2 className="text-gradient" style={{ fontSize: '1.25rem' }}>SkyNet v3</h2>
+                    <h2 className="text-gradient" style={{ fontSize: '1.25rem' }}>Rafael Pabón</h2>
                 </div>
 
                 <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <SideItem to="/" icon={<Map size={18} />} label={t('nav.dashboard')} />
                     <SideItem to="/flights" icon={<Search size={18} />} label={t('nav.flights')} />
                     <SideItem to="/bookings" icon={<Ticket size={18} />} label={t('nav.bookings')} />
-                    <SideItem to="/routes" icon={<BarChart2 size={18} />} label={t('nav.routes')} />
                 </nav>
 
                 <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -132,24 +131,6 @@ const MainLayout = ({ children }) => {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        <span style={{ fontSize: '0.85rem', color: 'hsl(var(--text-muted))' }}>Estoy comprando desde:</span>
-                        <select 
-                            value={selectedCity}
-                            onChange={handleRegionChange}
-                            className="glass-light"
-                            style={{ padding: '6px 12px', borderRadius: '8px', background: 'hsl(var(--bg-card))', color: 'white', border: '1px solid hsla(var(--primary), 0.5)', outline: 'none', cursor: 'pointer', maxWidth: '300px', fontSize: '0.9rem' }}
-                        >
-                            <optgroup label="AMÉRICA">
-                                {regiones.map((r, i) => r.key === 'AMERICA' && <option key={i} value={i} style={{ background: '#111' }}>{r.label}</option>)}
-                            </optgroup>
-                            <optgroup label="EUROPA / ÁFRICA">
-                                {regiones.map((r, i) => r.key === 'EUROPE' && <option key={i} value={i} style={{ background: '#111' }}>{r.label}</option>)}
-                            </optgroup>
-                            <optgroup label="ASIA / OCEANÍA">
-                                {regiones.map((r, i) => r.key === 'ASIA' && <option key={i} value={i} style={{ background: '#111' }}>{r.label}</option>)}
-                            </optgroup>
-                        </select>
-
                         <div style={{ padding: '6px 15px', background: 'hsla(var(--primary) / 0.15)', borderRadius: '8px', fontSize: '0.9rem', minWidth: '170px', textAlign: 'center', border: '1px solid hsla(var(--primary)/0.3)' }}>
                             {localTime}
                         </div>

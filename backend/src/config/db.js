@@ -22,7 +22,7 @@ const dbPassword = isNode2
 const dbConfig = {
     user: process.env.SQL_USER || 'sa',
     password: dbPassword,
-    server: process.env.SQL_SERVER || 'localhost',
+    server: process.env.SQL_SERVER || '127.0.0.1',
     database: process.env.SQL_DATABASE || 'AerolineasDB',
     port: nodeDbPort,
     options: {

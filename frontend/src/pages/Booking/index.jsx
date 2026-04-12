@@ -24,6 +24,7 @@ const Booking = () => {
     const [error, setError] = useState(null);
     const [selectedSeat, setSelectedSeat] = useState(null);
     const [bookingStatus, setBookingStatus] = useState('selection'); // selection, confirming, success
+    const [confirmedPassenger, setConfirmedPassenger] = useState(null);
     
     // User data and modal
     const [showUserModal, setShowUserModal] = useState(false);
@@ -107,6 +108,7 @@ const Booking = () => {
             } else {
                 await api.bookSeat(flightId, selectedSeat.id, passID, passName, passEmail);
             }
+            setConfirmedPassenger({ passName, passID, passEmail });
             setBookingStatus('success');
         } catch (err) {
             alert(`Error: ${err.message}`);
@@ -128,7 +130,7 @@ const Booking = () => {
                     {t('booking.selected')}: <strong>{selectedSeat.id}</strong>. {flight.flightNumber} - {flight.origin} → {flight.destination}.
                 </p>
                 <div style={{ display: 'flex', gap: '16px' }}>
-                    <button onClick={() => generateTicketPDF({ flight, seat: selectedSeat })} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button onClick={() => generateTicketPDF({ flight, seat: selectedSeat, passenger: confirmedPassenger })} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <CreditCard size={18} />
                         <span>{t('booking.download_pdf')}</span>
                     </button>
@@ -186,8 +188,9 @@ const Booking = () => {
                     <h3 style={{ marginBottom: '20px' }}>{t('booking.summary')}</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <SummaryItem icon={<ChevronLeft size={16} rotate={90} />} label="Vuelo" value={flight.flightNumber} />
-                        <SummaryItem icon={<Clock size={16} />} label="Hora" value={flight.departureTime?.split('T')[1]} />
+                        <SummaryItem icon={<Clock size={16} />} label="Hora" value={flight.departureTime?.split('T')[1]?.substring(0, 5) + 'Z'} />
                         <SummaryItem icon={<Map size={16} />} label="Fecha" value={flight.departureTime?.split('T')[0]} />
+                        <SummaryItem icon={<CreditCard size={16} />} label="Precio Base" value={`$${flight.price}`} />
                     </div>
                 </div>
 
@@ -247,21 +250,22 @@ const Booking = () => {
                     zIndex: 9999
                 }}>
                     <div style={{
-                        backgroundColor: 'white',
+                        backgroundColor: 'hsl(var(--surface))',
+                        border: '1px solid hsl(var(--border))',
                         borderRadius: '12px',
                         padding: '32px',
                         maxWidth: '400px',
                         width: '90%',
-                        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)'
+                        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)'
                     }}>
-                        <h2 style={{ marginBottom: '24px', fontSize: '1.5rem', fontWeight: '700' }}>
-                            {t('booking.passenger_info') || 'Passenger Information'}
+                        <h2 style={{ marginBottom: '24px', fontSize: '1.5rem', fontWeight: '700', color: 'hsl(var(--text-main))' }}>
+                            Información del Pasajero
                         </h2>
                         
                         <form onSubmit={handleUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div>
                                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '0.875rem' }}>
-                                    {t('booking.passenger_name') || 'Full Name'}
+                                    Nombre Completo
                                 </label>
                                 <input
                                     type="text"
@@ -271,9 +275,11 @@ const Booking = () => {
                                     style={{
                                         width: '100%',
                                         padding: '10px 12px',
-                                        border: '1px solid #e5e7eb',
+                                        border: '1px solid hsl(var(--border))',
                                         borderRadius: '8px',
                                         fontSize: '1rem',
+                                        backgroundColor: 'hsl(var(--bg-main))',
+                                        color: 'hsl(var(--text-main))',
                                         boxSizing: 'border-box'
                                     }}
                                     required
@@ -282,7 +288,7 @@ const Booking = () => {
 
                             <div>
                                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '0.875rem' }}>
-                                    {t('booking.passenger_id') || 'ID / Passport'}
+                                    Pasaporte / ID
                                 </label>
                                 <input
                                     type="text"
@@ -292,9 +298,11 @@ const Booking = () => {
                                     style={{
                                         width: '100%',
                                         padding: '10px 12px',
-                                        border: '1px solid #e5e7eb',
+                                        border: '1px solid hsl(var(--border))',
                                         borderRadius: '8px',
                                         fontSize: '1rem',
+                                        backgroundColor: 'hsl(var(--bg-main))',
+                                        color: 'hsl(var(--text-main))',
                                         boxSizing: 'border-box'
                                     }}
                                     required
@@ -303,7 +311,7 @@ const Booking = () => {
 
                             <div>
                                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '0.875rem' }}>
-                                    {t('booking.passenger_email') || 'Email'}
+                                    Correo Electrónico
                                 </label>
                                 <input
                                     type="email"
@@ -313,9 +321,11 @@ const Booking = () => {
                                     style={{
                                         width: '100%',
                                         padding: '10px 12px',
-                                        border: '1px solid #e5e7eb',
+                                        border: '1px solid hsl(var(--border))',
                                         borderRadius: '8px',
                                         fontSize: '1rem',
+                                        backgroundColor: 'hsl(var(--bg-main))',
+                                        color: 'hsl(var(--text-main))',
                                         boxSizing: 'border-box'
                                     }}
                                     required
@@ -334,9 +344,10 @@ const Booking = () => {
                                     style={{
                                         flex: 1,
                                         padding: '12px',
-                                        border: '1px solid #e5e7eb',
+                                        border: '1px solid hsl(var(--border))',
                                         borderRadius: '8px',
-                                        backgroundColor: '#f3f4f6',
+                                        backgroundColor: 'hsl(var(--surface))',
+                                        color: 'hsl(var(--text-main))',
                                         cursor: 'pointer',
                                         fontWeight: '600'
                                     }}

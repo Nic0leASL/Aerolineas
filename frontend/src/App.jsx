@@ -10,7 +10,6 @@ import Home from './pages/Home';
 import FlightSearch from './pages/FlightSearch';
 import Booking from './pages/Booking';
 import FlightDashboard from './pages/FlightDashboard';
-import RouteOptimizer from './pages/RouteOptimizer';
 
 function App() {
   return (
@@ -21,7 +20,6 @@ function App() {
           <Route path="/flights" element={<FlightSearch />} />
           <Route path="/booking/:flightId" element={<Booking />} />
           <Route path="/dashboard/:flightId" element={<FlightDashboard />} />
-          <Route path="/routes" element={<RouteOptimizer />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </MainLayout>

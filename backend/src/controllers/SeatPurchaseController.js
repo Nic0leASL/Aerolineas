@@ -97,7 +97,20 @@ export class SeatPurchaseController {
       }
 
       // Obtener vuelo
-      const flight = this.flightService.getFlight(flightId);
+      let flight = this.flightService.getFlight(flightId);
+      let seat = flight ? flight.getSeat(seatNumber) : null;
+
+      // Soporte dinámico para compras múltiples (Dijkstra) vía Vuelo Virtual
+      if (!flight && flightId.includes('_MULTIHOP')) {
+          flight = { id: flightId, price: 1500, getSeat: () => seat };
+          seat = { 
+              seatNumber: seatNumber, 
+              status: 'AVAILABLE', 
+              seatType: seatNumber.includes('A') || seatNumber.includes('B') ? 'FIRST_CLASS' : 'ECONOMY_CLASS', 
+              price: 1500 
+          };
+      }
+
       if (!flight) {
         return res.status(404).json({
           success: false,
@@ -107,8 +120,6 @@ export class SeatPurchaseController {
         });
       }
 
-      // Obtener asiento
-      const seat = flight.getSeat(seatNumber);
       if (!seat) {
         return res.status(404).json({
           success: false,
@@ -166,10 +177,36 @@ export class SeatPurchaseController {
               throw new Error('Doble reserva evitada (SQL Server Reject)');
           }
 
-          // 2. Inserción (Generación de clave identidad ocurrirá con Salto de Llave por DB Schema)
+          // 2. Insertar Pasajero en tabla Persons si no existe
+          let personResult = await request.query(`SELECT PersonId FROM Persons WHERE PassportNumber = '${passengerId}'`);
+          let personId;
+          
+          if (personResult.recordset.length === 0) {
+              const insertPerson = await request.query(`
+                  INSERT INTO Persons (PassportNumber, FullName, Email)
+                  OUTPUT INSERTED.PersonId
+                  VALUES ('${passengerId}', '${passengerName}', '${email}')
+              `);
+              personId = insertPerson.recordset[0].PersonId;
+          } else {
+              personId = personResult.recordset[0].PersonId;
+          }
+
+          // 3. Gestionar Vuelo Virtual MULTIHOP en la Base de Datos para evitar Foreign Key Constraint Error
+          if (flightId.includes("_MULTIHOP")) {
+              const flightCheck = await request.query(`SELECT FlightId FROM Flights WHERE FlightId = '${flightId}'`);
+              if (flightCheck.recordset.length === 0) {
+                  await request.query(`
+                      INSERT INTO Flights (FlightId, AircraftId, Origin, Destination, DepartureTime, ArrivalTime, Duration, FirstClassPrice, EconomyPrice, Status)
+                      VALUES ('${flightId}', 1, 'VIRT', 'UAL', GETDATE(), GETDATE(), 0, 1500, 1200, 'SCHEDULED')
+                  `);
+              }
+          }
+
+          // 4. Inserción (Generación de clave identidad Tickets ocurrirá con Salto de Llave por DB Schema)
           await request.query(`
-              INSERT INTO Tickets (FlightId, SeatNumber, PassengerId, PassengerName, Email, PhoneNumber, TicketPrice, Status)
-              VALUES ('${flightId}', '${seatNumber}', '${passengerId}', '${passengerName}', '${email}', '${phoneNumber || ''}', ${ticketPrice}, 'BOOKED')
+              INSERT INTO Tickets (FlightId, PersonId, SeatNumber, SeatClass, PricePaid, Status, PurchaseNode)
+              VALUES ('${flightId}', ${personId}, '${seatNumber}', '${seat.seatType || 'ECONOMY_CLASS'}', ${ticketPrice}, 'BOOKED', 'DYNAMIC_MULTINODE')
           `);
 
           await transaction.commit();

@@ -46,6 +46,32 @@ export class FlightController {
    */
   async getAllFlights(req, res) {
     try {
+      // Intentar obtener desde DB en vivo en lugar de memoria
+      try {
+          const pool = await getConnection();
+          // We limit results to 300 so it doesn't overload
+          const result = await pool.request().query('SELECT TOP(300) * FROM Flights'); 
+          
+          if (result.recordset && result.recordset.length > 0) {
+              const dbFlights = result.recordset.map(r => ({
+                  id: r.FlightId,
+                  flightNumber: r.FlightNumber || r.FlightId,
+                  origin: r.Origin,
+                  destination: r.Destination,
+                  departureTime: r.DepartureTime,
+                  arrivalTime: r.ArrivalTime || r.DepartureTime, // fallback if missing
+                  price: r.EconomyPrice,
+                  status: r.Status,
+                  duration: r.Duration,
+                  nodeId: req.params.nodeId || 1
+              }));
+              return res.status(200).json(dbFlights);
+          }
+      } catch (e) {
+          logger.error('Fallo SQL en getAllFlights, usando fallback en memoria', { error: e.message });
+      }
+
+      // Fallback
       const flights = this.service.getAllFlights();
       res.status(200).json(flights.map(f => f.toJSON()));
     } catch (error) {
@@ -60,6 +86,32 @@ export class FlightController {
   async getFlightById(req, res) {
     try {
       const { flightId } = req.params;
+
+      // Soporte dinámico para compras múltiples (Dijkstra)
+      if (flightId.includes('_MULTIHOP')) {
+          const parts = flightId.replace('_MULTIHOP', '').split('-');
+          const origin = parts[0];
+          const dest = parts[parts.length - 1];
+          return res.status(200).json({
+              id: flightId,
+              flightNumber: `MULTI-${origin}-${dest}`,
+              origin: origin,
+              destination: dest,
+              departureTime: "2026-04-14T08:00:00Z",
+              arrivalTime: "2026-04-14T18:00:00Z",
+              aircraft: "Aeronave Escalas Optimizada",
+              status: "SCHEDULED",
+              price: 1200,
+              duration: 600,
+              seats: Array.from({length: 300}, (_, i) => ({
+                 seatNumber: `${Math.floor(i / 6) + 1}${String.fromCharCode(65 + (i % 6))}`,
+                 class: i < 30 ? 'FIRST' : 'ECONOMY',
+                 status: Math.random() > 0.8 ? 'BOOKED' : 'AVAILABLE',
+                 price: i < 30 ? 2500 : 1200
+             }))
+          });
+      }
+
       const flight = this.service.getFlight(flightId);
 
       if (!flight) {

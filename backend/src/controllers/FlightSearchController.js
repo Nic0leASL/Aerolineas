@@ -52,6 +52,50 @@ export class FlightSearchController {
   async getFlightById(req, res) {
     try {
       const { flightId } = req.params;
+
+      // Soporte dinámico para compras múltiples (Dijkstra) vía Endpoint de Búsqueda
+      if (flightId.includes('_MULTIHOP')) {
+          const parts = flightId.replace('_MULTIHOP', '').split('-');
+          const origin = parts[0];
+          const dest = parts[parts.length - 1];
+
+          // Fetch booked seats from local SQL Server instance to sync views
+          const { getConnection } = await import('../config/db.js');
+          const pool = await getConnection();
+          const boughtSeats = await pool.request().query(`SELECT SeatNumber FROM Tickets WHERE FlightId = '${flightId}'`);
+          const boughtSet = new Set(boughtSeats.recordset.map(r => r.SeatNumber));
+
+          return res.status(200).json({
+              id: flightId,
+              flightNumber: `MULTI-${origin}-${dest}`,
+              origin: origin,
+              destination: dest,
+              departureTime: "2026-04-14T08:00:00Z",
+              arrivalTime: "2026-04-14T18:00:00Z",
+              aircraft: "Aeronave Escalas Optimizada",
+              status: "SCHEDULED",
+              price: 1200,
+              duration: 600,
+              seats: Array.from({length: 228}, (_, i) => { // 8 First Class + 220 Economy (Boeing 787-9 Dreamliner)
+                 const isFirst = i < 8;
+                 const seatNumber = `${Math.floor(i / 6) + 1}${String.fromCharCode(65 + (i % 6))}`;
+                 
+                 // Hash determinista asegurado por el nombre del asiento y vuelo
+                 const strSeed = `${flightId}_${seatNumber}`;
+                 let hash = 0;
+                 for (let k = 0; k < strSeed.length; k++) hash = Math.imul(31, hash) + strSeed.charCodeAt(k) | 0;
+                 const deterRandom = Math.abs(Math.sin(hash)) || 0;
+
+                 return {
+                     seatNumber: seatNumber,
+                     seatType: isFirst ? 'FIRST_CLASS' : 'ECONOMY_CLASS',
+                     status: boughtSet.has(seatNumber) ? 'BOOKED' : (deterRandom < 0.73 ? 'BOOKED' : 'AVAILABLE'),
+                     price: isFirst ? 2500 : 1200
+                 };
+             })
+          });
+      }
+
       const flight = this.service.getFlightDetails(flightId);
 
       if (!flight) {

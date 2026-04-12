@@ -201,6 +201,34 @@ if (flightsPath) {
       initializedFlights.push(flight);
     });
 
+    // Asegurar que TODAS las rutas posibles de las matrices existan en el grafo (Vuelos Fantasma para que Dijkstra no evalúe nodos desconectados)
+    const airKeys = Object.keys(economyPrices);
+    airKeys.forEach(origin => {
+        if (!economyPrices[origin]) return;
+        Object.keys(economyPrices[origin]).forEach(destination => {
+            const price = economyPrices[origin][destination];
+            if (price !== null) {
+                // Verificar si ya existe vuelo para esta arista
+                if (!initializedFlights.find(f => f.origin === origin && f.destination === destination)) {
+                    const phantomFlight = flightService.createFlight({
+                        id: `${origin}${destination}_PHANTOM_001`,
+                        flightNumber: '9999',
+                        aircraft: `Aeronave Phantom`,
+                        origin: origin,
+                        destination: destination,
+                        departureTime: '2026-04-14T00:00:00',
+                        arrivalTime: '2026-04-14T02:00:00',
+                        status: 'SCHEDULED',
+                        price: price,
+                        firstClassPrice: firstClassPrices[origin]?.[destination] || (price * 2.5),
+                        duration: (flightTimes[origin]?.[destination] || 120) * 60
+                    });
+                    initializedFlights.push(phantomFlight);
+                }
+            }
+        });
+    });
+
     graphService.loadFlightsData(initializedFlights);
     graphService.buildGraph();
 

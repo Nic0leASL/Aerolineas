@@ -16,21 +16,36 @@ const API_BASE_URL = `http://localhost:${currentPort}`;
 /**
  * Common fetch wrapper with error handling
  */
-async function apiFetch(endpoint, options = {}) {
+async function apiFetch(endpoint, options = {}, isRetry = false) {
     const url = `${API_BASE_URL}${endpoint}`;
-    const response = await fetch(url, {
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...options.headers,
-        },
-    });
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            },
+        });
 
-    const data = await response.json();
-    if (!response.ok) {
-        throw new Error(data.message || data.error || 'Error en la petición');
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || data.error || 'Error en la petición');
+        }
+        return data;
+    } catch (e) {
+        if (!isRetry && currentPort !== '3001') {
+            const fallbackUrl = `http://localhost:3001${endpoint}`;
+            console.warn(`Node API at ${currentPort} failed. Falling back to Node 1 (3001).`);
+            const fallbackResponse = await fetch(fallbackUrl, {
+                ...options,
+                headers: { 'Content-Type': 'application/json', ...options.headers }
+            });
+            const fbData = await fallbackResponse.json();
+            if(!fallbackResponse.ok) throw new Error(fbData.message || fbData.error || 'Fallback Request failed');
+            return fbData;
+        }
+        throw e;
     }
-    return data;
 }
 
 export const api = {

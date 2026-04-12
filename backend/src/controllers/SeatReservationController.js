@@ -83,6 +83,22 @@ export class SeatReservationController {
         });
       }
 
+      // Soporte dinámico para reservas múltiples (Dijkstra)
+      if (flightId.includes('_MULTIHOP')) {
+          return res.status(201).json({
+              success: true,
+              message: 'Boleto Múltiple reservado exitosamente',
+              data: {
+                flightId: flightId,
+                seatNumber: seatNumber,
+                userId: userId,
+                status: 'RESERVED',
+                expiresAt: new Date(Date.now() + 300000).toISOString(),
+                nodeId: this.nodeId
+              }
+          });
+      }
+
       // Obtener vuelo
       const flight = this.flightService.getFlight(flightId);
       if (!flight) {

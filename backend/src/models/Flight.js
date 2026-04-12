@@ -39,30 +39,33 @@ export class Flight {
    * Inicializa los asientos del vuelo
    */
   initializeSeats() {
-    let seatNumber = 1;
+    this.seats = {};
+    let firstSeats = 10;
+    let economySeats = 150; // Fallback generico
+    
+    // Aeronave 1: Airbus A380-800
+    if (this.aircraft === 'Aeronave 1') { firstSeats = 10; economySeats = 439; }
+    // Aeronave 2: Boeing 777-300ER
+    else if (this.aircraft === 'Aeronave 2') { firstSeats = 10; economySeats = 300; }
+    // Aeronave 3: Airbus A350-900
+    else if (this.aircraft === 'Aeronave 3') { firstSeats = 12; economySeats = 250; }
+    // Aeronave 4: Boeing 787-9 Dreamliner
+    else if (this.aircraft === 'Aeronave 4') { firstSeats = 8; economySeats = 220; }
+    // Nodos Intermedios / Phantom
+    else if (this.aircraft.includes('Phantom') || this.aircraft.includes('Escalas')) { firstSeats = 8; economySeats = 220; }
 
-    // Primera Clase
-    for (let i = 0; i < SEATS_PER_TYPE.FIRST_CLASS; i++) {
+    // Generar Primera Clase
+    for (let i = 0; i < firstSeats; i++) {
       const row = String.fromCharCode(65 + (i % 4));  // A, B, C, D
       const seatId = `${Math.floor(i / 4) + 1}${row}`;
-      const price = this.firstClassPrice;
-      this.seats[seatId] = new Seat(seatId, SEAT_TYPES.FIRST_CLASS, this.id, price);
+      this.seats[seatId] = new Seat(seatId, SEAT_TYPES.FIRST_CLASS, this.id, this.firstClassPrice);
     }
 
-    // Clase Ejecutiva
-    for (let i = 0; i < SEATS_PER_TYPE.BUSINESS_CLASS; i++) {
+    // Generar Case Turística
+    for (let i = 0; i < economySeats; i++) {
       const row = String.fromCharCode(65 + (i % 6));  // A-F
-      const seatId = `${Math.floor(i / 6) + 11}${row}`;
-      const price = Math.round(this.price * 1.8); // 1.8x base
-      this.seats[seatId] = new Seat(seatId, SEAT_TYPES.BUSINESS_CLASS, this.id, price);
-    }
-
-    // Clase Turística
-    for (let i = 0; i < SEATS_PER_TYPE.ECONOMY_CLASS; i++) {
-      const row = String.fromCharCode(65 + (i % 9));  // A-I
-      const seatId = `${Math.floor(i / 9) + 16}${row}`;
-      const price = this.price; 
-      this.seats[seatId] = new Seat(seatId, SEAT_TYPES.ECONOMY_CLASS, this.id, price);
+      const seatId = `${Math.floor(i / 6) + 5}${row}`; // Empieza en fila 5
+      this.seats[seatId] = new Seat(seatId, SEAT_TYPES.ECONOMY_CLASS, this.id, this.price);
     }
   }
 
