@@ -3,7 +3,15 @@
  * Frontend API Service for Tickets #20-25
  */
 
-const API_BASE_URL = 'http://localhost:3001';
+// Leer el nodo actual basado en la geolocalización del usuario
+const region = localStorage.getItem('regionKey') || 'AMERICA';
+const puertosNodos = {
+    'AMERICA': '3001',   // La Paz (SQL)
+    'EUROPE': '3002',    // Ucrania (SQL)
+    'ASIA': '3003'       // Beijing (Mongo)
+};
+const currentPort = puertosNodos[region] || '3001';
+const API_BASE_URL = `http://localhost:${currentPort}`;
 
 /**
  * Common fetch wrapper with error handling
@@ -67,6 +75,18 @@ export const api = {
         apiFetch('/rutas/mas-rapida', {
             method: 'POST',
             body: JSON.stringify({ origen, destino })
+        }),
+
+    getKCheapestRoutes: (origen, destino, k = 2) =>
+        apiFetch('/dijkstra/k-cheapest', {
+            method: 'POST',
+            body: JSON.stringify({ origin: origen, destination: destino, k })
+        }),
+
+    getKFastestRoutes: (origen, destino, k = 2) =>
+        apiFetch('/time-optimized/k-fastest', {
+            method: 'POST',
+            body: JSON.stringify({ origin: origen, destination: destino, k })
         }),
 
     getTSP: (body) =>

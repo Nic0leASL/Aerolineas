@@ -24,7 +24,7 @@ class TimeOptimizedService {
    * @param {string} end - Código del aeropuerto de destino (null para todos)
    * @returns {Object} {distances, previous, path}
    */
-  dijkstra(start, end) {
+  dijkstra(start, end, ignoreEdge = null) {
     const adjacencyList = this.graphService.adjacencyList;
     const nodes = this.graphService.nodes;
 
@@ -82,6 +82,10 @@ class TimeOptimizedService {
       // Relajación de aristas (usando TIME como peso)
       const neighbors = adjacencyList.get(current) || [];
       for (const neighbor of neighbors) {
+        if (ignoreEdge && ignoreEdge.from === current && ignoreEdge.to === neighbor.destination) {
+           continue;
+        }
+        
         if (unvisited.has(neighbor.destination)) {
           // Usar TIME como peso, no cost
           const newDistance = distances.get(current) + neighbor.time;
@@ -286,32 +290,55 @@ class TimeOptimizedService {
    * @param {number} k - Número de rutas a retornar
    * @returns {Object} {success, routes}
    */
-  findKFastestRoutes(origin, destination, k = 1) {
-    if (k < 1 || k > 10) {
-      return {
-        success: false,
-        code: 'INVALID_K',
-        error: 'K debe estar entre 1 y 10'
-      };
-    }
-
+  findKFastestRoutes(origin, destination, k = 2) {
     const fastest = this.findFastestRoute(origin, destination);
+    if (!fastest.success) return { success: false, code: fastest.code, error: fastest.error };
 
-    if (!fastest.success) {
-      return {
-        success: false,
-        code: fastest.code,
-        error: fastest.error
-      };
+    const routes = [
+      {
+        rank: 1,
+        path: fastest.path,
+        totalTime: fastest.totalTime,
+        hops: fastest.hops,
+        isPrimary: true
+      }
+    ];
+
+    if (k === 1) return { success: true, k, routes };
+
+    let bestAlternative = null;
+    for (let i = 0; i < fastest.path.length - 1; i++) {
+        const ignoreEdge = { from: fastest.path[i], to: fastest.path[i+1] };
+        
+        const altResult = this.dijkstra(origin, destination, ignoreEdge);
+        if (altResult && altResult.distances.get(destination) !== Infinity) {
+             const time = altResult.distances.get(destination);
+             if (!bestAlternative || time < bestAlternative.totalTime) {
+                 const altPath = [];
+                 let current = destination;
+                 while (current !== null) {
+                   altPath.unshift(current);
+                   current = altResult.previous.get(current);
+                 }
+                 
+                 if (JSON.stringify(altPath) !== JSON.stringify(fastest.path)) {
+                     bestAlternative = {
+                         rank: 2,
+                         path: altPath,
+                         totalTime: time,
+                         hops: altPath.length - 1,
+                         isPrimary: false
+                     };
+                 }
+             }
+        }
     }
 
-    // Por ahora retornamos la ruta más rápida
-    // En una versión mejorada, podríamos usar Yen's algorithm
-    return {
-      success: true,
-      k: 1,
-      routes: [fastest]
-    };
+    if (bestAlternative) {
+        routes.push(bestAlternative);
+    }
+
+    return { success: true, k, routes };
   }
 
   /**

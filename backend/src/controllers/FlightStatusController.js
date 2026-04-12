@@ -68,7 +68,7 @@ class FlightStatusController {
     async getGlobalStats(req, res) {
         try {
             const data = this.flightsData || [];
-            const result = this.service.getGlobalStats(data);
+            const result = await this.service.getGlobalStats(data);
             return res.status(200).json(result);
         } catch (error) {
             console.error('Error en getGlobalStats:', error);

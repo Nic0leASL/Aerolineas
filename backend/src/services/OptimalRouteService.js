@@ -155,6 +155,37 @@ class OptimalRouteService {
     }
 
     /**
+     * Obtener las Mejores 4 Rutas (Visión CEO)
+     * 2 más baratas y 2 más rápidas
+     * 
+     * @param {string} origen - Código aeropuerto origen
+     * @param {string} destino - Código aeropuerto destino
+     * @returns {Object} 4 Rutas consolidadas
+     */
+    obtenerTop4Rutas(origen, destino) {
+        const baratas = this.dijkstraService.findKCheapestRoutes(origen, destino, 2);
+        const rapidas = this.timeOptimizedService.findKFastestRoutes(origen, destino, 2);
+
+        if (!baratas.success || !rapidas.success) {
+             return {
+                 success: false,
+                 tipo: 'TOP_4_RUTAS',
+                 error: 'No fue posible encontrar rutas hacia ese destino'
+             };
+        }
+
+        return {
+             success: true,
+             tipo: 'TOP_4_RUTAS',
+             origen,
+             destino,
+             mejoresPorPrecio: baratas.routes,
+             mejoresPorTiempo: rapidas.routes,
+             timestamp: new Date().toISOString()
+        };
+    }
+
+    /**
      * Comparar ruta más barata vs más rápida
      * 
      * @param {string} origen - Código aeropuerto origen

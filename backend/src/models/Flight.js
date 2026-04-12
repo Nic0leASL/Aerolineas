@@ -21,7 +21,9 @@ export class Flight {
 
     // Estado actual
     this.status = FLIGHT_STATES.SCHEDULED;             // Estado inicial
-    this.price = flightData.price || 1000;             // Precio base en dólares
+    this.price = flightData.price || 1000;             // Precio base base (Economy)
+    this.firstClassPrice = flightData.firstClassPrice || Math.round(this.price * 2.5);
+    this.duration = flightData.duration || 120; // Duracion en minutos
 
     // Asientos - se inicializan vacíos
     this.seats = {};                                   // { seatNumber: Seat }
@@ -43,7 +45,7 @@ export class Flight {
     for (let i = 0; i < SEATS_PER_TYPE.FIRST_CLASS; i++) {
       const row = String.fromCharCode(65 + (i % 4));  // A, B, C, D
       const seatId = `${Math.floor(i / 4) + 1}${row}`;
-      const price = Math.round(this.price * 2.5); // 2.5x base
+      const price = this.firstClassPrice;
       this.seats[seatId] = new Seat(seatId, SEAT_TYPES.FIRST_CLASS, this.id, price);
     }
 
@@ -59,7 +61,7 @@ export class Flight {
     for (let i = 0; i < SEATS_PER_TYPE.ECONOMY_CLASS; i++) {
       const row = String.fromCharCode(65 + (i % 9));  // A-I
       const seatId = `${Math.floor(i / 9) + 16}${row}`;
-      const price = Math.round(this.price * 1.0); // 1.0x base
+      const price = this.price; 
       this.seats[seatId] = new Seat(seatId, SEAT_TYPES.ECONOMY_CLASS, this.id, price);
     }
   }

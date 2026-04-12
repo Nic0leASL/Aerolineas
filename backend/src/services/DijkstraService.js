@@ -74,7 +74,7 @@ class DijkstraService {
    * 
    * Complejidad: O(V + E log V) con heap, O(V²) sin heap
    */
-  dijkstra(start, end = null) {
+  dijkstra(start, end = null, ignoreEdge = null) {
     const startTime = Date.now();
 
     // Paso 1: Inicializar estructuras
@@ -126,8 +126,13 @@ class DijkstraService {
       const neighbors = this.graphService.adjacencyList.get(current) || [];
 
       for (const neighbor of neighbors) {
+        // Skip ignored edge for K-Shortest Path Yen's Algorithm
+        if (ignoreEdge && ignoreEdge.from === current && ignoreEdge.to === neighbor.destination) {
+           continue;
+        }
+        
         const dest = neighbor.destination;
-        const edgeWeight = neighbor.weight || 1; // Usar el peso real (costo)
+        const edgeWeight = neighbor.weight || neighbor.cost || 1; // Usar el peso real (costo)
 
         // Calcular distancia alternativa
         const alt = distances.get(current) + edgeWeight;
@@ -282,39 +287,62 @@ class DijkstraService {
   /**
    * Encontrar K rutas más baratas (variantes)
    */
-  findKCheapestRoutes(origin, destination, k = 3) {
+  findKCheapestRoutes(origin, destination, k = 2) {
     if (k < 1) {
-      return {
-        success: false,
-        error: 'K debe ser al menos 1'
-      };
+      return { success: false, error: 'K debe ser al menos 1' };
     }
 
-    // Implementación simplificada: usar Dijkstra una sola vez
-    // Para múltiples rutas se requeriría algoritmo Yen's o similar
     const primary = this.findCheapestRoute(origin, destination);
+    if (!primary.success) return primary;
 
-    if (!primary.success) {
-      return primary;
+    const routes = [
+      {
+        rank: 1,
+        path: primary.path,
+        totalCost: primary.totalCost,
+        hops: primary.hops,
+        isPrimary: true
+      }
+    ];
+
+    if (k === 1) return { success: true, origin, destination, k, routes };
+
+    // Búsqueda de rutas secundarias (Variaciones de Edge Deletion - Yen Simplificado)
+    let bestAlternative = null;
+
+    for (let i = 0; i < primary.path.length - 1; i++) {
+        const ignoreEdge = { from: primary.path[i], to: primary.path[i+1] };
+        
+        // Ejecutar Dijkstra ignorando esta arista crítica del camino más rápido
+        const altResult = this.dijkstra(origin, destination, ignoreEdge);
+        if (altResult.success) {
+             const cost = altResult.distance;
+             // Si encontramos una alternativa válida
+             if (!bestAlternative || cost < bestAlternative.totalCost) {
+                 // Validar que no sea idéntica (improbable por la arista borrada pero posible en multigrafos)
+                 if (JSON.stringify(altResult.path) !== JSON.stringify(primary.path)) {
+                     bestAlternative = {
+                         rank: 2,
+                         path: altResult.path,
+                         totalCost: cost,
+                         hops: altResult.path.length - 1,
+                         isPrimary: false
+                     };
+                 }
+             }
+        }
     }
 
-    // Por ahora devolvemos solo la ruta principal
-    // En producción, aquí se buscarían K rutas mediante modificación de pesos
+    if (bestAlternative) {
+        routes.push(bestAlternative);
+    }
+
     return {
       success: true,
       origin,
       destination,
       k,
-      routes: [
-        {
-          rank: 1,
-          path: primary.path,
-          totalCost: primary.totalCost,
-          hops: primary.hops,
-          isPrimary: true
-        }
-      ],
-      note: 'Solo ruta primaria implementada. Para K múltiples usar Yen\'s algorithm'
+      routes
     };
   }
 

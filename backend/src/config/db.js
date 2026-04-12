@@ -15,8 +15,8 @@ const nodeDbPort = isNode2
     : parseInt(process.env.SQL_PORT_NODE1 || '1433');
 
 const dbPassword = isNode2 
-    ? process.env.SQL_PASSWORD_NODE2 
-    : process.env.SQL_PASSWORD_NODE1;
+    ? (process.env.SQL_PASSWORD_NODE2 || 'SuperSecretSQL2!') 
+    : (process.env.SQL_PASSWORD_NODE1 || 'SuperSecretSQL1!');
 
 // Configuración leída de las variables de entorno
 const dbConfig = {
@@ -30,10 +30,7 @@ const dbConfig = {
         trustServerCertificate: true // Obligatorio true para dev/certs autofirmados
     }
 };
-        encrypt: false,
-        trustServerCertificate: true 
-    }
-};
+
 
 let poolContext = null;
 

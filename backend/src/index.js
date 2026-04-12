@@ -154,19 +154,47 @@ if (flightsPath) {
     const subset = flightsData.slice(0, 1000);
     const initializedFlights = [];
 
+    const matricesPath = path.join(process.cwd(), 'src/data/matrices');
+    let economyPrices = {};
+    let firstClassPrices = {};
+    let flightTimes = {};
+    
+    try {
+        economyPrices = JSON.parse(fs.readFileSync(path.join(matricesPath, 'economy_prices.json')));
+        firstClassPrices = JSON.parse(fs.readFileSync(path.join(matricesPath, 'first_class_prices.json')));
+        flightTimes = JSON.parse(fs.readFileSync(path.join(matricesPath, 'flight_times.json')));
+        logger.info('✅ Matrices de precios y tiempos cargadas correctamente');
+    } catch(e) {
+        logger.warn('⚠ No se encontraron matrices en src/data/matrices, usando valores por defecto');
+    }
+
     subset.forEach(f => {
       const flightId = f.flightId;
+      const origin = f.origin;
+      const destination = f.destination;
+
+      // Si la matriz oficial indica que NO HAY vuelo directo (es null), se salta la creación
+      if (economyPrices[origin] && economyPrices[origin][destination] === null) {
+          return;
+      }
+
+      const economyPrice = economyPrices[origin]?.[destination] || (Math.floor(Math.random() * 800) + 200);
+      const firstClassPrice = firstClassPrices[origin]?.[destination] || Math.round(economyPrice * 2.5);
+      const durationHours = flightTimes[origin]?.[destination];
+      const duration = durationHours ? durationHours * 60 : 120; // 120 min por defecto
 
       const flight = flightService.createFlight({
         id: flightId,
         flightNumber: flightId.split('_')[0],
         aircraft: `Aeronave ${f.aircraft_id}`,
-        origin: f.origin,
-        destination: f.destination,
+        origin: origin,
+        destination: destination,
         departureTime: f.flight_date + 'T' + f.flight_time,
         arrivalTime: f.flight_date + 'T' + f.flight_time, // Placeholder
         status: f.status,
-        price: Math.floor(Math.random() * 800) + 200
+        price: economyPrice,
+        firstClassPrice: firstClassPrice,
+        duration: duration
       });
 
       seatOccupancyService.simularOcupacion(flight); // Ahora sí, el vuelo ya tiene seats inicializados

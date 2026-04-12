@@ -4,21 +4,66 @@ GO
 USE AerolineasDB;
 GO
 
--- Tabla de Boletos con salto de identidad (NODO 1: Impares)
-CREATE TABLE Tickets (
-    Id INT IDENTITY(1,2) PRIMARY KEY,
-    FlightId VARCHAR(50) NOT NULL,
-    SeatNumber VARCHAR(10) NOT NULL,
-    PassengerId VARCHAR(50) NOT NULL,
-    PassengerName VARCHAR(100) NOT NULL,
-    Email VARCHAR(100) NOT NULL,
-    PhoneNumber VARCHAR(30) NULL,
-    TicketPrice DECIMAL(10, 2) NOT NULL,
-    Status VARCHAR(20) NOT NULL,
-    BookedAt DATETIME DEFAULT GETDATE()
+-- 1. Tipos de Aviones
+CREATE TABLE AircraftModels (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Manufacturer VARCHAR(100) NOT NULL,
+    Model VARCHAR(100) NOT NULL,
+    FirstClassSeats INT NOT NULL,
+    EconomySeats INT NOT NULL
 );
 GO
 
--- Crear índice para evitar overbooking dual (restricción única por vuelo y asiento si está ocupado)
-CREATE UNIQUE INDEX UX_Flight_Seat ON Tickets(FlightId, SeatNumber) WHERE Status IN ('CONFIRMED', 'BOOKED');
+-- 2. Flota
+CREATE TABLE Fleet (
+    AircraftId INT PRIMARY KEY,
+    ModelId INT NOT NULL FOREIGN KEY REFERENCES AircraftModels(Id)
+);
+GO
+
+-- 3. Vuelos
+CREATE TABLE Flights (
+    FlightId VARCHAR(100) PRIMARY KEY,
+    AircraftId INT NOT NULL FOREIGN KEY REFERENCES Fleet(AircraftId),
+    Origin VARCHAR(10) NOT NULL,
+    Destination VARCHAR(10) NOT NULL,
+    DepartureTime DATETIME NOT NULL,
+    ArrivalTime DATETIME NOT NULL,
+    Duration INT NOT NULL, -- Minutos
+    FirstClassPrice DECIMAL(10,2) NOT NULL,
+    EconomyPrice DECIMAL(10,2) NOT NULL,
+    Status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED'
+);
+GO
+
+-- 4. Personas
+CREATE TABLE Persons (
+    PersonId INT IDENTITY(1,1) PRIMARY KEY,
+    PassportNumber VARCHAR(50) UNIQUE NOT NULL,
+    FullName VARCHAR(150) NOT NULL,
+    Email VARCHAR(150) NOT NULL
+);
+GO
+
+-- 5. Boletos / Asientos (Tickets)
+-- Nodo 1 Generará Ids iniciando en 1 (Salto de Identidad)
+CREATE TABLE Tickets (
+    TicketId INT IDENTITY(1,1) PRIMARY KEY,
+    FlightId VARCHAR(100) NOT NULL FOREIGN KEY REFERENCES Flights(FlightId),
+    PersonId INT NOT NULL FOREIGN KEY REFERENCES Persons(PersonId),
+    SeatNumber VARCHAR(10) NOT NULL,
+    SeatClass VARCHAR(20) NOT NULL, -- FIRST o ECONOMY
+    PricePaid DECIMAL(10,2) NOT NULL,
+    Status VARCHAR(20) NOT NULL, -- BOOKED, RESERVED, CANCELLED
+    BookedAt DATETIME DEFAULT GETDATE(),
+    PurchaseNode VARCHAR(50) DEFAULT 'AMERICA', -- Desde qué portal/nodo se vendió
+    -- Requisito Práctica: Reloj Vector y Lamport fields (opcional log)
+    LamportMark INT NULL,
+    VectorClock VARCHAR(100) NULL
+);
+GO
+
+-- Índice Único Filtrado para evitar Overbooking simultáneo (Prioridad Consistencia en SQL Server)
+CREATE UNIQUE INDEX UX_Flight_Seat ON Tickets(FlightId, SeatNumber) 
+WHERE Status IN ('CONFIRMED', 'BOOKED', 'RESERVED');
 GO

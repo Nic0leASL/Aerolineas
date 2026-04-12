@@ -132,13 +132,7 @@ export class SeatPurchaseController {
       }
 
       // Calcular precio basado en tipo de asiento
-      const seatTypeMultipliers = {
-        FIRST_CLASS: 1.5,
-        BUSINESS_CLASS: 1.2,
-        ECONOMY_CLASS: 1.0
-      };
-      const multiplier = seatTypeMultipliers[seat.seatType] || 1.0;
-      const ticketPrice = Math.round(flight.price * multiplier);
+      const ticketPrice = seat.price || flight.price; // Usar el precio seteado durante la creación del asiento
 
       // Crear datos de compra
       const bookingData = {

@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 
 const RouteOptimizer = () => {
     const { t } = useTranslation();
-    const [routeType, setRouteType] = useState('cheapest'); // cheapest, fastest, tsp
+    const [routeType, setRouteType] = useState('top4'); // top4, tsp
     const [inputs, setInputs] = useState({
         origin: '',
         destination: '',
@@ -58,10 +58,16 @@ const RouteOptimizer = () => {
                 data.totalCost = criterion === 'cost' ? data.totalDistance : data.summary?.totalCost;
                 data.totalTime = criterion === 'time' ? data.totalDistance : data.summary?.totalTime;
             } else {
-                if (routeType === 'cheapest') {
-                    data = await api.getCheapestRoute(inputs.origin, inputs.destination);
-                } else {
-                    data = await api.getFastestRoute(inputs.origin, inputs.destination);
+                if (routeType === 'top4') {
+                    const [resCheap, resFast] = await Promise.allSettled([
+                        api.getKCheapestRoutes(inputs.origin, inputs.destination, 2),
+                        api.getKFastestRoutes(inputs.origin, inputs.destination, 2)
+                    ]);
+                    
+                    const cheapRoutes = resCheap.status === 'fulfilled' && resCheap.value.success ? resCheap.value.routes.map(r => ({ ...r, label: 'Super Económico', color: 'hsl(var(--success))' })) : [];
+                    const fastRoutes = resFast.status === 'fulfilled' && resFast.value.success ? resFast.value.routes.map(r => ({ ...r, label: 'Extra Rápido', color: 'hsl(var(--primary))' })) : [];
+                    
+                    data = { routes: [...cheapRoutes, ...fastRoutes] };
                 }
             }
             setResult(data);
@@ -81,8 +87,7 @@ const RouteOptimizer = () => {
 
             {/* Strategy Selection */}
             <div style={{ display: 'flex', gap: '12px' }}>
-                <StrategyButton active={routeType === 'cheapest'} onClick={() => setRouteType('cheapest')} icon={<DollarSign size={18} />} label={t('routes.cheapest')} />
-                <StrategyButton active={routeType === 'fastest'} onClick={() => setRouteType('fastest')} icon={<Clock size={18} />} label={t('routes.fastest')} />
+                <StrategyButton active={routeType === 'top4'} onClick={() => setRouteType('top4')} icon={<DollarSign size={18} />} label={'Top 4 Opciones'} />
                 <StrategyButton active={routeType === 'tsp'} onClick={() => setRouteType('tsp')} icon={<List size={18} />} label={t('routes.tsp')} />
             </div>
 
@@ -112,7 +117,40 @@ const RouteOptimizer = () => {
                 </div>
             )}
 
-            {result && (
+            {result && routeType === 'top4' && result.routes && (
+                <div className="animate-fade" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
+                    {result.routes.map((r, i) => (
+                        <div key={i} className="glass" style={{ padding: '30px', borderRadius: 'var(--radius-xl)', position: 'relative', overflow: 'hidden' }}>
+                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: r.color }}></div>
+                            <div style={{ position: 'absolute', top: '15px', right: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: r.color, color: 'white', padding: '4px 12px', borderRadius: '12px' }}>
+                                {r.label}
+                            </div>
+                            
+                            <h3 style={{ marginBottom: '20px' }}>Opción #{i + 1}</h3>
+                            <div style={{ display: 'flex', gap: '20px', marginBottom: '24px' }}>
+                                <div style={{ flex: 1 }}><MetricCard label="Costo del Vuelo" value={`$${r.totalCost || 0}`} color="var(--accent)" /></div>
+                                <div style={{ flex: 1 }}><MetricCard label="Tiempo del Vuelo" value={`${r.totalTime || 0} min`} color="var(--primary)" /></div>
+                            </div>
+                            
+                            <div style={{ marginTop: '20px' }}>
+                                <div style={{ fontSize: '0.85rem', color: 'hsl(var(--text-dim))', marginBottom: '16px', fontWeight: 'bold' }}>ESCALAS ( {r.path?.length - 1 || 0} Paradas )</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+                                    {r.path?.map((node, idx) => (
+                                        <React.Fragment key={idx}>
+                                            <div style={{ padding: '8px 16px', background: 'hsla(var(--bg-main)/0.5)', borderRadius: '20px', border: `1px solid ${r.color}`, fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                                {node}
+                                            </div>
+                                            {idx < r.path.length - 1 && <ArrowRight size={16} color="hsl(var(--text-muted))" />}
+                                        </React.Fragment>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+            
+            {result && routeType !== 'top4' && !result.routes && (
                 <div className="animate-fade" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
                         <MetricCard label="Costo Total" value={`$${result.totalCost || 0}`} color="var(--accent)" />
@@ -123,33 +161,13 @@ const RouteOptimizer = () => {
                     <div className="glass" style={{ padding: '40px', borderRadius: 'var(--radius-xl)' }}>
                         <h3 style={{ marginBottom: '40px', textAlign: 'center' }}>Itinerario Calculado</h3>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '15px' }}>
                             {result.path?.map((node, idx) => (
                                 <React.Fragment key={idx}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', zIndex: 1 }}>
-                                        <div style={{
-                                            width: '60px',
-                                            height: '60px',
-                                            background: idx === 0 ? 'hsl(var(--primary))' : idx === result.path.length - 1 ? 'hsl(var(--success))' : 'hsl(var(--bg-card))',
-                                            borderRadius: '50%',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            border: '2px solid hsl(var(--border))',
-                                            boxShadow: 'var(--shadow-md)'
-                                        }}>
-                                            {idx === 0 ? <PlaneTakeoff size={24} /> : idx === result.path.length - 1 ? <PlaneLanding size={24} /> : <Navigation size={20} />}
-                                        </div>
-                                        <span style={{ fontWeight: '700', fontSize: '1rem' }}>{node}</span>
+                                    <div style={{ padding: '10px 20px', background: 'hsla(var(--primary)/0.1)', borderRadius: '20px', border: '1px solid hsla(var(--primary)/0.4)', fontWeight: 'bold' }}>
+                                        {node}
                                     </div>
-
-                                    {idx < result.path.length - 1 && (
-                                        <div style={{ flex: 1, height: '2px', background: 'linear-gradient(to right, hsla(var(--primary) / 0.5), hsla(var(--success) / 0.5))', minWidth: '40px', margin: '0 -10px', position: 'relative', top: '-18px' }}>
-                                            <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)' }}>
-                                                <ArrowRight size={16} color="hsl(var(--text-dim))" />
-                                            </div>
-                                        </div>
-                                    )}
+                                    {idx < result.path.length - 1 && <ArrowRight size={16} color="hsl(var(--text-muted))" />}
                                 </React.Fragment>
                             ))}
                         </div>

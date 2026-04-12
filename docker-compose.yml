@@ -11,9 +11,10 @@ services:
       - "1433:1433"
     volumes:
       - ./db1-init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backend/scripts/seed.sql:/docker-entrypoint-initdb.d/seed.sql
     # En MSSQL la inicialización automática con init.sql en este directorio a veces requiere un script custom,
     # pero para el entorno de desarrollo podemos ejecutar el volumen o indicarle al usuario que lo corra.
-    command: /bin/bash -c "/opt/mssql/bin/sqlservr & sleep 20 && /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'SuperSecretSQL1!' -d master -i /docker-entrypoint-initdb.d/init.sql && wait"
+    command: /bin/bash -c "/opt/mssql/bin/sqlservr & sleep 20 && /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'SuperSecretSQL1!' -d master -i /docker-entrypoint-initdb.d/init.sql && /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'SuperSecretSQL1!' -d master -i /docker-entrypoint-initdb.d/seed.sql && wait"
 
   sqlserver2:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -25,4 +26,5 @@ services:
       - "1434:1433"
     volumes:
       - ./db2-init.sql:/docker-entrypoint-initdb.d/init.sql
-    command: /bin/bash -c "/opt/mssql/bin/sqlservr & sleep 20 && /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'SuperSecretSQL2!' -d master -i /docker-entrypoint-initdb.d/init.sql && wait"
+      - ./backend/scripts/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+    command: /bin/bash -c "/opt/mssql/bin/sqlservr & sleep 20 && /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'SuperSecretSQL2!' -d master -i /docker-entrypoint-initdb.d/init.sql && /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'SuperSecretSQL2!' -d master -i /docker-entrypoint-initdb.d/seed.sql && wait"

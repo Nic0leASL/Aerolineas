@@ -3,6 +3,7 @@
  */
 
 import Logger from '../utils/logger.js';
+import { getConnection, sql } from '../config/db.js';
 
 const logger = new Logger(process.env.LOG_LEVEL || 'info');
 
@@ -54,7 +55,7 @@ export class FlightController {
   }
 
   /**
-   * Obtener vuelo por ID
+   * Obtener vuelo por ID (Sincronizado con SQL Server)
    */
   async getFlightById(req, res) {
     try {
@@ -65,7 +66,28 @@ export class FlightController {
         return res.status(404).json({ error: 'Vuelo no encontrado' });
       }
 
-      res.status(200).json(flight.toJSONWithSeats());
+      const payload = flight.toJSONWithSeats();
+
+      try {
+         const pool = await getConnection();
+         const result = await pool.request()
+            .input('flightId', sql.VarChar, flightId)
+            .query(`SELECT SeatNumber, Status, PricePaid FROM Tickets WHERE FlightId = @flightId`);
+            
+         const dbTickets = result.recordset;
+         // Sincronizar estado visual desde la Base de Datos Verdadera
+         for (const dbTick of dbTickets) {
+             const seatIndex = payload.seats.findIndex(s => s.seatNumber === dbTick.SeatNumber);
+             if (seatIndex !== -1) {
+                 payload.seats[seatIndex].status = dbTick.Status;
+                 payload.seats[seatIndex].price = dbTick.PricePaid; 
+             }
+         }
+      } catch(e) {
+         logger.error('Fallo al sincronizar asientos con SQL DB, usando fallback', { error: e.message });
+      }
+
+      res.status(200).json(payload);
     } catch (error) {
       logger.error('Error obteniendo vuelo', { error: error.message });
       res.status(500).json({ error: 'Error interno del servidor' });
