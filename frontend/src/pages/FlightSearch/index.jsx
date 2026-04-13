@@ -7,10 +7,13 @@ import { useTranslation } from 'react-i18next';
 const FlightSearch = () => {
     const { t } = useTranslation();
     const [flights, setFlights] = useState([]);
-    const [allEdges, setAllEdges] = useState([]); // All flights to calculate reachable graph
+    const [allEdges, setAllEdges] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [top4, setTop4] = useState(null);
+    const [remainingRoutes, setRemainingRoutes] = useState([]);
+    const [sameDayFlights, setSameDayFlights] = useState([]);
+    const [otherDayFlights, setOtherDayFlights] = useState([]);
     const [search, setSearch] = useState({
         origin: '',
         destination: '',
@@ -62,29 +65,48 @@ const FlightSearch = () => {
         setLoading(true);
         setError(null);
         setTop4(null);
+        setRemainingRoutes([]);
         setFlights([]);
+        setSameDayFlights([]);
+        setOtherDayFlights([]);
         try {
-            // First fetch the basic flights if any
-            const data = await api.getFlights(params);
+            // Traer todos los vuelos de este origen→destino (sin filtrar fecha en el API)
+            const fetchParams = { ...params };
+            delete fetchParams.date; // Quitamos date para traer TODOS los vuelos de la ruta
+            const data = await api.getFlights(fetchParams);
 
-            let filtered = Array.isArray(data) ? data : (data.data || data.flights || []);
-            if (params.origin) filtered = filtered.filter(f => f.origin.toUpperCase() === params.origin.toUpperCase());
-            if (params.destination) filtered = filtered.filter(f => f.destination.toUpperCase() === params.destination.toUpperCase());
-            if (params.date) filtered = filtered.filter(f => f.departureTime && f.departureTime.includes(params.date));
+            let allFiltered = Array.isArray(data) ? data : (data.data || data.flights || []);
+            if (params.origin) allFiltered = allFiltered.filter(f => f.origin?.toUpperCase() === params.origin.toUpperCase());
+            if (params.destination) allFiltered = allFiltered.filter(f => f.destination?.toUpperCase() === params.destination.toUpperCase());
 
-            setFlights(filtered);
+            setFlights(allFiltered);
+
+            // Separar por fecha si el usuario eligió un día específico
+            if (params.date) {
+                const sameDay = allFiltered.filter(f => f.departureTime && f.departureTime.startsWith(params.date));
+                const otherDays = allFiltered.filter(f => !f.departureTime || !f.departureTime.startsWith(params.date));
+                setSameDayFlights(sameDay);
+                setOtherDayFlights(otherDays);
+            } else {
+                setSameDayFlights([]);
+                setOtherDayFlights(allFiltered);
+            }
+
+            // Usado solo para calcular el vuelo directo del Top4
+            const filtered = params.date
+                ? allFiltered.filter(f => f.departureTime && f.departureTime.startsWith(params.date))
+                : allFiltered;
 
             // Fetch Dijkstra Options if origin and dest are provided
             if (params.origin && params.destination && params.origin !== params.destination) {
                 const [resCheap, resFast] = await Promise.allSettled([
-                    api.getKCheapestRoutes(params.origin.toUpperCase(), params.destination.toUpperCase(), 3),
-                    api.getKFastestRoutes(params.origin.toUpperCase(), params.destination.toUpperCase(), 3)
+                    api.getKCheapestRoutes(params.origin.toUpperCase(), params.destination.toUpperCase(), 15),
+                    api.getKFastestRoutes(params.origin.toUpperCase(), params.destination.toUpperCase(), 15)
                 ]);
 
                 let cheapRoutes = resCheap.status === 'fulfilled' && resCheap.value.data && resCheap.value.data.success ? resCheap.value.data.routes : [];
                 let fastRoutes = resFast.status === 'fulfilled' && resFast.value.data && resFast.value.data.success ? resFast.value.data.routes : [];
 
-                // Unification logic to get EXACTLY 4 smart options
                 const all = [];
 
                 // 1. Un vuelo directo (si existe en los vuelos simples filtrados)
@@ -108,13 +130,16 @@ const FlightSearch = () => {
                     const p = route.path.join('-');
                     if (!seenPaths.has(p)) {
                         seenPaths.add(p);
+                        const cost = route.totalCost || (route.routeDetails && route.routeDetails.reduce((sum, d) => sum + (Number(d.cost) || 0), 0)) || 0;
+                        const time = route.totalTime || (route.routeDetails && route.routeDetails.reduce((sum, d) => sum + (Number(d.time) || 0), 0)) || 0;
                         all.push({
+                            id: `${p}_MULTIHOP`,
                             isDirect: route.path.length === 2,
                             label: route.path.length === 2 ? t('search.direct_flight', '✈️ Vuelo Directo') : fallbackLabel,
                             color: color,
                             path: route.path,
-                            totalCost: route.totalCost || (route.routeDetails && route.routeDetails.reduce((sum, d) => sum + (Number(d.cost) || 0), 0)) || 0,
-                            totalTime: route.totalTime || (route.routeDetails && route.routeDetails.reduce((sum, d) => sum + (Number(d.time) || 0), 0)) || 0,
+                            totalCost: cost,
+                            totalTime: time,
                             route: route
                         });
                     }
@@ -126,26 +151,26 @@ const FlightSearch = () => {
                     addRoute(r, t('search.extra_fast', '⚡ Más Rápido'), 'hsl(var(--primary))');
                 }
 
-                // 3. Escalas (Mejor precio / Mejor Escala)
+                // 3. Escalas (Mejor precio)
                 const sortedCheap = [...cheapRoutes].sort((a, b) => a.totalCost - b.totalCost);
                 for (const r of sortedCheap) {
                     addRoute(r, t('search.super_cheap', '💰 Menor Costo (Escalas)'), 'hsl(var(--accent))');
                 }
 
-                // 4. Opción extra (relleno si no llegamos a 4 y hay más)
-                // They get automatically added by the loops above. Let's slice exactly 4.
-                let final4 = all.slice(0, 4);
+                // Sort overall options by best combination (cheap and not too slow)
+                const bestAll = all.slice(0, 4); // Top 4 as Smart Options
+                const remainder = all.slice(4, 20); // Get up to ~15-20 more alternatives
 
-                // For the last one, if it's not a direct flight, we label it "Opción Extra"
-                if (final4.length > 3 && !final4[3].label.includes("✈️")) {
-                    final4[3].label = "🌟 " + t('search.extra_option', 'Opción Extra');
-                    final4[3].color = "#a855f7"; // purple string
+                if (bestAll.length > 3 && !bestAll[3].label.includes("✈️")) {
+                    bestAll[3].label = "🌟 " + t('search.extra_option', 'Opción Extra');
+                    bestAll[3].color = "#a855f7"; 
                 }
 
-                setTop4(final4);
+                setTop4(bestAll);
+                setRemainingRoutes(remainder);
             } else {
-                // Si no hay busqueda específica, seteamos el top4 a vacio
                 setTop4(null);
+                setRemainingRoutes([]);
             }
         } catch (err) {
             setError(err.message);
@@ -341,8 +366,81 @@ const FlightSearch = () => {
                 </div>
             )}
 
-            {/* Regular Flights List (when no origin+dest pair is selected or just listing from an origin) */}
-            {!loading && flights.length > 0 && (!displayTop4 || displayTop4.length === 0) && (
+            {/* Opciones Multiples Adicionales (después del top 4) */}
+            {!loading && remainingRoutes && remainingRoutes.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '40px' }}>
+                    <h3 style={{ fontSize: '1.25rem', marginBottom: '8px', color: 'hsl(var(--text))' }}>✈️ {t('search.other_flights', 'Otras Rutas Disponibles')} ({remainingRoutes.length})</h3>
+                    {remainingRoutes.map((route, idx) => (
+                        <div key={idx} className="glass card-hover" style={{
+                            padding: '20px', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'var(--transition)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '1.25rem', fontWeight: '700' }}>10:00</div>
+                                    <div style={{ fontSize: '0.875rem', color: 'hsl(var(--text-muted))' }}>{route.path[0]}</div>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '150px' }}>
+                                    <div style={{ fontSize: '0.75rem', color: 'hsl(var(--text-dim))' }}>{route.totalTime || 300} min</div>
+                                    <div style={{ width: '100%', height: '1px', background: 'hsl(var(--border))', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-around' }}>
+                                         <div style={{ position: 'absolute', top: -5, left: 0, right: 0, display: 'flex', justifyContent: 'space-around' }}>
+                                             {route.path.slice(1, -1).map((hop, hIdx) => (
+                                                 <div key={hIdx} style={{ width: 8, height: 8, background: 'hsl(var(--primary))', borderRadius: '50%' }}></div>
+                                             ))}
+                                         </div>
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: route.path.length === 2 ? 'hsl(var(--success))' : 'hsl(var(--warning))' }}>
+                                        {route.path.length === 2 ? t('common.direct') : `${route.path.length - 2} Escalas`}
+                                    </div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '1.25rem', fontWeight: '700' }}>{t('search.arrival')}</div>
+                                    <div style={{ fontSize: '0.875rem', color: 'hsl(var(--text-muted))' }}>{route.path[route.path.length - 1]}</div>
+                                </div>
+                            </div>
+                            <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <div>
+                                    <div style={{ fontSize: '0.75rem', color: 'hsl(var(--text-dim))' }}>{t('search.total_cost')}</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'hsl(var(--text))' }}>${Number(route.totalCost || 0).toFixed(2)}</div>
+                                </div>
+                                <Link to={`/booking/${route.path.join('-')}_MULTIHOP`} className="btn-primary glass" style={{ backgroundColor: 'hsla(var(--primary)/0.2)', color: 'hsl(var(--primary))', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span>{t('common.select')}</span>
+                                    <ArrowRight size={18} />
+                                </Link>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Vuelos del día seleccionado */}
+            {!loading && sameDayFlights.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '40px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                        <h3 style={{ fontSize: '1.2rem', color: 'hsl(var(--success))' }}>
+                            🗓️ Vuelos Disponibles el {search.date} ({sameDayFlights.length} vuelo{sameDayFlights.length !== 1 ? 's' : ''})
+                        </h3>
+                        <span style={{ background: 'hsla(var(--success)/0.15)', color: 'hsl(var(--success))', borderRadius: '12px', padding: '2px 12px', fontSize: '0.8rem', fontWeight: 'bold' }}>HOY</span>
+                    </div>
+                    {sameDayFlights.map(flight => (
+                        <FlightCard key={flight.id || flight.flightId} flight={flight} t={t} />
+                    ))}
+                </div>
+            )}
+
+            {/* Vuelos de otros días */}
+            {!loading && otherDayFlights.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '40px' }}>
+                    <h3 style={{ fontSize: '1.2rem', color: 'hsl(var(--text-muted))', marginBottom: '8px' }}>
+                        📅 Vuelos en Otras Fechas Disponibles ({otherDayFlights.length} vuelo{otherDayFlights.length !== 1 ? 's' : ''})
+                    </h3>
+                    {otherDayFlights.map(flight => (
+                        <FlightCard key={flight.id || flight.flightId} flight={flight} t={t} />
+                    ))}
+                </div>
+            )}
+
+            {/* Regular Flights List (when no origin+dest pair is selected) */}
+            {!loading && flights.length > 0 && (!displayTop4 || displayTop4.length === 0) && sameDayFlights.length === 0 && otherDayFlights.length === 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <h3 style={{ fontSize: '1.25rem', marginBottom: '16px', color: 'hsl(var(--text))' }}>✈️ {t('search.flights_found', 'Vuelos Encontrados')}</h3>
                     {flights.map(flight => (
@@ -389,60 +487,75 @@ const SelectInput = ({ icon, label, value, onChange, options }) => (
 
 
 
-const FlightCard = ({ flight, t }) => (
-    <div className="glass card-hover" style={{
-        padding: '24px',
-        borderRadius: 'var(--radius-lg)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        transition: 'var(--transition)'
-    }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-            <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '1.25rem', fontWeight: '700' }}>{flight.departureTime?.split('T')[1]?.substring(0, 5) || '12:00'}</div>
-                <div style={{ fontSize: '0.875rem', color: 'hsl(var(--text-muted))' }}>{flight.origin}</div>
-            </div>
+const FlightCard = ({ flight, t }) => {
+    const depDate = flight.departureTime ? new Date(flight.departureTime) : null;
+    const depTimeStr = depDate ? depDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '—';
+    const depDateStr = depDate
+        ? depDate.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
+        : null;
 
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '120px' }}>
-                <div style={{ fontSize: '0.75rem', color: 'hsl(var(--text-dim))' }}>2h 45m</div>
-                <div style={{ width: '100%', height: '1px', background: 'hsl(var(--border))', position: 'relative' }}>
-                    <PlaneTakeoff size={14} style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', color: 'hsl(var(--text-dim))' }} />
+    return (
+        <div className="glass card-hover" style={{
+            padding: '20px 24px',
+            borderRadius: 'var(--radius-lg)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            transition: 'var(--transition)',
+            gap: '16px'
+        }}>
+            {/* Fecha badge */}
+            {depDateStr && (
+                <div style={{ minWidth: '90px', textAlign: 'center', background: 'hsla(var(--primary)/0.1)', borderRadius: '10px', padding: '8px', border: '1px solid hsla(var(--primary)/0.2)' }}>
+                    <div style={{ fontSize: '0.65rem', color: 'hsl(var(--text-dim))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fecha</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'hsl(var(--primary))', lineHeight: 1.2, marginTop: '2px' }}>{depDateStr}</div>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'hsl(var(--success))' }}>{t('common.direct')}</div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flex: 1 }}>
+                {/* Origen */}
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.4rem', fontWeight: '800', letterSpacing: '-0.5px' }}>{depTimeStr}</div>
+                    <div style={{ fontSize: '1rem', fontWeight: '700', color: 'hsl(var(--primary))' }}>{flight.origin}</div>
+                </div>
+
+                {/* Línea central */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, minWidth: '100px' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'hsl(var(--text-dim))' }}>{flight.duration ? `${flight.duration} min` : 'Directo'}</div>
+                    <div style={{ width: '100%', height: '2px', background: 'linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)))', borderRadius: '2px', position: 'relative' }}>
+                        <PlaneTakeoff size={13} style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -60%)', color: 'white', background: 'hsl(var(--bg-card))', borderRadius: '50%', padding: '1px' }} />
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'hsl(var(--success))', fontWeight: '600' }}>{t('common.direct')}</div>
+                </div>
+
+                {/* Destino */}
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.4rem', fontWeight: '800', letterSpacing: '-0.5px' }}>—</div>
+                    <div style={{ fontSize: '1rem', fontWeight: '700', color: 'hsl(var(--accent))' }}>{flight.destination}</div>
+                </div>
             </div>
 
-            <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '1.25rem', fontWeight: '700' }}>{t('search.arrival')}</div>
-                <div style={{ fontSize: '0.875rem', color: 'hsl(var(--text-muted))' }}>{flight.destination}</div>
+            {/* Precio y acciones */}
+            <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div>
+                    <div style={{ fontSize: '0.7rem', color: 'hsl(var(--text-dim))', textTransform: 'uppercase' }}>{t('search.from')}</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: '800', color: 'hsl(var(--accent))' }}>
+                        ${typeof flight.price === 'number' ? flight.price.toFixed(2) : (flight.economyPrice || flight.price || '850.00')}
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <Link to={`/dashboard/${flight.id}`} className="glass-light" style={{ padding: '10px', borderRadius: 'var(--radius-md)', color: 'hsl(var(--text-muted))' }}>
+                        <BarChart3 size={18} />
+                    </Link>
+                    <Link to={`/booking/${flight.id}`} className="btn-primary" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px' }}>
+                        <span>{t('common.select')}</span>
+                        <ArrowRight size={16} />
+                    </Link>
+                </div>
             </div>
         </div>
-
-        <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div>
-                <div style={{ fontSize: '0.75rem', color: 'hsl(var(--text-dim))' }}>{t('search.from')}</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'hsl(var(--accent))' }}>${flight.price}</div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px' }}>
-                <Link to={`/dashboard/${flight.id}`} className="glass-light" style={{ padding: '12px', borderRadius: 'var(--radius-md)', color: 'hsl(var(--text-muted))' }}>
-                    <BarChart3 size={20} />
-                </Link>
-                <Link to={`/booking/${flight.id}`} className="btn-primary" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>{t('common.select')}</span>
-                    <ArrowRight size={18} />
-                </Link>
-            </div>
-        </div>
-
-        <style>{`
-      .card-hover:hover {
-        transform: scale(1.01);
-        border-color: hsla(var(--primary) / 0.5);
-        box-shadow: 0 10px 40px -10px hsla(var(--primary) / 0.2);
-      }
-    `}</style>
-    </div>
-);
+    );
+};
 
 export default FlightSearch;

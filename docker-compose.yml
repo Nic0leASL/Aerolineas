@@ -26,3 +26,23 @@ services:
     volumes:
       - ./db2-init.sql:/docker-entrypoint-initdb.d/init.sql
     command: /bin/bash -c "/opt/mssql/bin/sqlservr & sleep 20 && /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'SuperSecretSQL2!' -d master -i /docker-entrypoint-initdb.d/init.sql && wait"
+
+  seed-db:
+    image: node:18
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    environment:
+      - SQL_SERVER=sqlserver1
+      - SQL_SERVER2=sqlserver2
+      - SQL_PORT_NODE1=1433
+      - SQL_PORT_NODE2=1433
+      - SQL_PASSWORD_NODE1=SuperSecretSQL1!
+      - SQL_PASSWORD_NODE2=SuperSecretSQL2!
+      - SQL_USER=sa
+      - SQL_DATABASE=AerolineasDB
+    # Esperamos 35 seg a que SQL Server inicialice completamente, y luego inyectamos los datos
+    command: bash -c "sleep 35 && node scripts/import_8119_to_sql.js"
+    depends_on:
+      - sqlserver1
+      - sqlserver2

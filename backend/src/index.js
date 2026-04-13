@@ -48,6 +48,7 @@ import TSPService from './services/TSPService.js';
 import TSPController from './controllers/TSPController.js';
 import tspRoutes from './routes/tspRoutes.js';
 import OptimalRouteService from './services/OptimalRouteService.js';
+import { getConnection, sql } from './config/db.js';
 import OptimalRouteController from './controllers/OptimalRouteController.js';
 import optimalRouteRoutes from './routes/optimalRouteRoutes.js';
 import SeatOccupancyService from './services/SeatOccupancyService.js';
@@ -142,59 +143,125 @@ const seatOccupancyController = new SeatOccupancyController(seatOccupancyService
 const flightStatusService = new FlightStatusService();
 const flightStatusController = new FlightStatusController(flightStatusService);
 
-// Inicializar MongoDB Replication Service (Nodo 3 - América)
+// Inicializar MongoDB Replication Service (Nodo 3 - América/Asia)
 const mongoReplicationService = new MongoReplicationService(nodeId);
 mongoReplicationService.initialize().catch(err => {
   logger.warn('⚠ MongoDB no disponible al inicio, replicaciones se encolarán');
 });
 
-// Cargar datos iniciales de vuelos
-const possiblePaths = [
-  path.join(process.cwd(), 'flights_cleaned.json'),
-  path.join(process.cwd(), '..', 'flights_cleaned.json')
-];
+// Import Flight Model from Mongoose to query MongoDB on Node 3
+import mongoose from 'mongoose';
+const flightSchema = new mongoose.Schema({}, { strict: false });
+const FlightModel = mongoose.models.Flight || mongoose.model('Flight', flightSchema);
 
-let flightsPath = possiblePaths.find(p => fs.existsSync(p));
-
-if (flightsPath) {
+// Cargar datos iniciales de vuelos desde SQL Server o MongoDB según el nodo
+async function loadFlightsIntoGraph() {
   try {
-    const fileContent = fs.readFileSync(flightsPath, 'utf-8');
-    const flightsData = JSON.parse(fileContent).data;
-    // Cargar solo los primeros 1000 para no saturar memoria en demo
-    const subset = flightsData.slice(0, 1000);
+    let flights = [];
+
+    if (nodeId === '3') {
+      logger.info('🗄 Nodo 3 detectado: Cargando vuelos desde MongoDB Atlas...');
+      const docs = await FlightModel.find({}).lean();
+      
+      flights = docs.map(doc => ({
+        FlightId: doc.flightId,
+        Origin: doc.origin,
+        Destination: doc.destination,
+        DepartureTime: doc.flight_date + 'T' + doc.flight_time,
+        ArrivalTime: doc.flight_date + 'T' + doc.flight_time, // fallback
+        Duration: 120, // default if not specified
+        EconomyPrice: 850, // default
+        Status: doc.status,
+        AircraftId: doc.aircraft_id
+      }));
+
+    } else {
+      const pool = await getConnection();
+      logger.info(`🗄 Nodo ${nodeId} detectado: Cargando vuelos desde SQL Server...`);
+      const result = await pool.request().query(`
+        SELECT FlightId, Origin, Destination, DepartureTime, ArrivalTime, Duration, EconomyPrice, Status, AircraftId
+        FROM Flights
+        ORDER BY DepartureTime
+      `);
+      flights = result.recordset;
+    }
+
+    logger.info(`✈ Vuelos recuperados: ${flights.length}`);
+
     const initializedFlights = [];
 
-    subset.forEach(f => {
-      const flightId = f.flightId;
+    for (const row of flights) {
+      const flightId = row.FlightId;
+      const depStr = row.DepartureTime ? new Date(row.DepartureTime).toISOString() : '2026-03-30T10:00:00';
+      const arrStr = row.ArrivalTime ? new Date(row.ArrivalTime).toISOString() : depStr;
 
       const flight = flightService.createFlight({
         id: flightId,
         flightNumber: flightId.split('_')[0],
-        aircraft: `Aeronave ${f.aircraft_id}`,
-        origin: f.origin,
-        destination: f.destination,
-        departureTime: f.flight_date + 'T' + f.flight_time,
-        arrivalTime: f.flight_date + 'T' + f.flight_time, // Placeholder
-        status: f.status,
-        price: Math.floor(Math.random() * 800) + 200
+        aircraft: `Aeronave ${row.AircraftId || 1}`,
+        origin: row.Origin,
+        destination: row.Destination,
+        departureTime: depStr,
+        arrivalTime: arrStr,
+        status: row.Status || 'SCHEDULED',
+        price: parseFloat(row.EconomyPrice) || 850,
+        duration: row.Duration || 120
       });
 
-      seatOccupancyService.simularOcupacion(flight); // Ahora sí, el vuelo ya tiene seats inicializados
+      seatOccupancyService.simularOcupacion(flight);
       initializedFlights.push(flight);
-    });
+    }
 
     graphService.loadFlightsData(initializedFlights);
     graphService.buildGraph();
-
-    logger.info(`✓ Cargados ${subset.length} vuelos desde ${path.basename(flightsPath)}`);
-    // Sincronizar también el controlador de búsqueda con los objetos inicializados
     flightStatusController.setFlightsData(initializedFlights);
-  } catch (error) {
-    logger.error('Error cargando vuelos iniciales', { error: error.message });
+
+    logger.info(`✅ Grafo construido con ${initializedFlights.length} vuelos reales desde SQL Server`);
+
+  } catch (sqlErr) {
+    logger.warn(`⚠ SQL no disponible (${sqlErr.message}), intentando fallback con JSON local...`);
+
+    // Fallback: JSON local sin límite de 1000
+    const possiblePaths = [
+      path.join(process.cwd(), 'flights_cleaned.json'),
+      path.join(process.cwd(), '..', 'flights_cleaned.json')
+    ];
+    const flightsPath = possiblePaths.find(p => fs.existsSync(p));
+    if (flightsPath) {
+      try {
+        const fileContent = fs.readFileSync(flightsPath, 'utf-8');
+        const flightsData = JSON.parse(fileContent).data.slice(0, 8119);
+        const initializedFlights = [];
+        flightsData.forEach(f => {
+          const flight = flightService.createFlight({
+            id: f.flightId,
+            flightNumber: f.flightId?.split('_')[0] || f.flightId,
+            aircraft: `Aeronave ${f.aircraft_id}`,
+            origin: f.origin,
+            destination: f.destination,
+            departureTime: f.flight_date + 'T' + f.flight_time,
+            arrivalTime: f.flight_date + 'T' + f.flight_time,
+            status: f.status || 'SCHEDULED',
+            price: Math.floor(Math.random() * 800) + 200
+          });
+          seatOccupancyService.simularOcupacion(flight);
+          initializedFlights.push(flight);
+        });
+        graphService.loadFlightsData(initializedFlights);
+        graphService.buildGraph();
+        flightStatusController.setFlightsData(initializedFlights);
+        logger.info(`✅ Fallback JSON: Grafo construido con ${initializedFlights.length} vuelos`);
+      } catch(jsonErr) {
+        logger.error('Error cargando vuelos JSON fallback', { error: jsonErr.message });
+      }
+    } else {
+      logger.warn('⚠ No se encontró flights_cleaned.json ni SQL disponible.');
+    }
   }
-} else {
-  logger.warn('⚠ No se encontró flights_cleaned.json en ninguna ruta conocida.');
 }
+
+// Ejecutar la carga asincrónica del grafo
+loadFlightsIntoGraph().catch(err => logger.error('Error fatal en carga del grafo', { error: err.message }));
 
 
 // Inyectar Lamport Clock y Vector Clock en controladores

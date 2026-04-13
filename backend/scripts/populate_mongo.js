@@ -26,85 +26,53 @@ const Flight = mongoose.models.Flight || mongoose.model('Flight', flightSchema);
 
 const mongoUri = process.env.MONGO_URI || 'mongodb://admin:MongoSecretPass1!@localhost:27017/AerolineasMongoDB?authSource=admin';
 
-async function syncFlightsFromCSV() {
-    console.log("Iniciando parseo del archivo CSV (Dataset Flights) para volcar a MongoDB...");
+async function syncFlightsFromJson() {
+    console.log("Iniciando purga e ingesta a MongoDB...");
     try {
         await mongoose.connect(mongoUri);
-        console.log("✅ Conectado a MongoDB");
-
-        const csvPath = path.resolve(__dirname, '../../02 - Practica 3 Dataset Flights.csv');
-        let csvContent = "";
+        console.log("✅ Conectado a MongoDB Atlas - Vaciando Colección (Purga Completa)");
         
-        if (fs.existsSync(csvPath)) {
-             csvContent = fs.readFileSync(csvPath, 'utf8');
+        await Flight.deleteMany({});
+        console.log("🗑 Colección Flight en Mongo vaciada exitosamente.");
+
+        const jsonPath = path.resolve(__dirname, '../flights_cleaned.json');
+        
+        if (!fs.existsSync(jsonPath)) {
+             throw new Error("No se encontró flights_cleaned.json.");
         }
 
-        if (!csvContent) {
-             throw new Error("No se encontró el Dataset CSV.");
-        }
+        const fileData = fs.readFileSync(jsonPath, 'utf8');
+        const parsedData = JSON.parse(fileData);
+        // El usuario solicitó específicamente cargar los 8119 registros iguales al SQL:
+        const flights = parsedData.data.slice(0, 8119);
 
-        const lines = csvContent.split('\n');
-        const parsedFlights = [];
+        console.log(`✈ Extraídos ${flights.length} vuelos del JSON para Mongo.`);
 
-        // Parsear CSV manual rápido (Omitimos primera línea de cabecera)
-        for (let i = 1; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line) continue;
+        const insertDocs = flights.map((f, i) => {
+            let flightDatestr = f.flight_date || '2026-03-30'; 
+            let flightTimeStr = f.flight_time || '10:00';
             
-            const cols = line.split(',');
-            if(cols.length < 5) continue;
-            
-            // Format: flight_date, flight_time, origin, destination, aircraft_id, status, gate
-            parsedFlights.push({
-                flightId: `RF-${i}`,
-                flight_date: cols[0],
-                flight_time: cols[1],
-                origin: cols[2],
-                destination: cols[3],
-                aircraft_id: parseInt(cols[4]),
-                status: cols[5] || 'SCHEDULED',
-                gate: cols[6] || `G-${Math.floor(Math.random() * 20)+1}`
-            });
-        }
+            if(flightDatestr.includes('/')) {
+               const parts = flightDatestr.split('/');
+               flightDatestr = `20${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+            }
 
-        console.log(`✈ Extraídos ${parsedFlights.length} vuelos del CSV.`);
-
-        let inserted = 0;
-        let updated = 0;
-
-        for (const f of parsedFlights) {
-            const flightData = {
-                flightId: f.flightId,
-                flight_date: f.flight_date,
-                flight_time: f.flight_time,
-                origin: f.origin,
-                destination: f.destination,
-                aircraft_id: f.aircraft_id,
-                status: f.status,
-                gate: f.gate,
+            return {
+                flightId: f.flightId || `RF-${i+1}`,
+                flight_date: flightDatestr,
+                flight_time: flightTimeStr,
+                origin: f.origin || 'UKN',
+                destination: f.destination || 'UKN',
+                aircraft_id: (f.aircraft_id > 100 || !f.aircraft_id) ? 1 : f.aircraft_id,
+                status: 'SCHEDULED',
+                gate: `G-${Math.floor(Math.random() * 20)+1}`,
                 originAirport: { city: f.origin, country: "Global", name: `Aeropuerto de ${f.origin}` },
                 destinationAirport: { city: f.destination, country: "Global", name: `Aeropuerto de ${f.destination}` }
             };
+        });
 
-            const dbRes = await Flight.findOneAndUpdate(
-                { flightId: f.flightId },
-                { $set: flightData },
-                { upsert: true, rawResult: true }
-            );
-
-            if (dbRes && dbRes.lastErrorObject && !dbRes.lastErrorObject.updatedExisting) {
-                inserted++;
-            } else {
-                updated++;
-            }
-            
-            // Log cada 5000 vuelos para mostrar progreso en consola
-            if ((inserted + updated) % 5000 === 0) {
-                console.log(`⏳ Progreso: ${inserted + updated} vuelos guardados en Mongo...`);
-            }
-        }
-
-        console.log(`🎉 Sincronización de CSV a MongoDB Completa! Insertados: ${inserted}, Actualizados: ${updated}`);
+        await Flight.insertMany(insertDocs);
+        console.log(`🎉 Ingesta a MongoDB Completa! Insertados exactamente ${insertDocs.length} vuelos idénticos a SQL.`);
 
     } catch (error) {
         console.error("❌ Error durante la sincronización: ", error);
@@ -115,4 +83,4 @@ async function syncFlightsFromCSV() {
     }
 }
 
-syncFlightsFromCSV();
+syncFlightsFromJson();
