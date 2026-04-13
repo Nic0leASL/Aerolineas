@@ -58,6 +58,10 @@ import FlightStatusController from './controllers/FlightStatusController.js';
 import flightStatusRoutes from './routes/flightStatusRoutes.js';
 import WalletPassController from './controllers/WalletPassController.js';
 import walletPassRoutes from './routes/walletPassRoutes.js';
+import MongoReplicationService from './services/MongoReplicationService.js';
+import dashboardGlobalRoutes from './routes/dashboardGlobalRoutes.js';
+import RecommendedRoutesService from './services/RecommendedRoutesService.js';
+import recommendedRoutesRoutes from './routes/recommendedRoutesRoutes.js';
 
 // Obtener ID del nodo desde variables de entorno
 const nodeId = parseInt(process.env.NODE_ID) || 1;
@@ -138,6 +142,12 @@ const seatOccupancyController = new SeatOccupancyController(seatOccupancyService
 const flightStatusService = new FlightStatusService();
 const flightStatusController = new FlightStatusController(flightStatusService);
 
+// Inicializar MongoDB Replication Service (Nodo 3 - América)
+const mongoReplicationService = new MongoReplicationService(nodeId);
+mongoReplicationService.initialize().catch(err => {
+  logger.warn('⚠ MongoDB no disponible al inicio, replicaciones se encolarán');
+});
+
 // Cargar datos iniciales de vuelos
 const possiblePaths = [
   path.join(process.cwd(), 'flights_cleaned.json'),
@@ -203,6 +213,10 @@ cancellationController.setEventSyncService(eventSyncService);
 cancellationController.setVectorClock(vectorClock);
 cancellationController.setAuditService(auditService);
 
+// Inyectar MongoReplicationService en controladores de compra y cancelación
+seatPurchaseController.mongoReplicationService = mongoReplicationService;
+cancellationController.mongoReplicationService = mongoReplicationService;
+
 // Inicializar Conflict Controller
 const conflictController = new ConflictController(conflictDetectionService);
 
@@ -224,6 +238,11 @@ app.use('/rutas', optimalRouteRoutes(optimalRouteController));
 app.use('/ocupacion', seatOccupancyRoutes(seatOccupancyController));
 app.use('/estado-vuelos', flightStatusRoutes(flightStatusController));
 app.use('/wallet-pass', walletPassRoutes);
+app.use('/dashboard-global', dashboardGlobalRoutes(flightService, mongoReplicationService));
+
+// Rutas recomendadas con escalas (catálogo del PDF)
+const recommendedRoutesService = new RecommendedRoutesService();
+app.use('/rutas-recomendadas', recommendedRoutesRoutes(recommendedRoutesService));
 
 // Ruta raíz
 app.get('/', (req, res) => {

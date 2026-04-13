@@ -24,7 +24,8 @@ const Booking = () => {
     const [error, setError] = useState(null);
     const [selectedSeat, setSelectedSeat] = useState(null);
     const [bookingStatus, setBookingStatus] = useState('selection'); // selection, confirming, success
-    
+    const [confirmedPassenger, setConfirmedPassenger] = useState(null);
+
     // User data and modal
     const [showUserModal, setShowUserModal] = useState(false);
     const [userName, setUserName] = useState('');
@@ -84,17 +85,18 @@ const Booking = () => {
             alert(t('booking.invalid_email') || 'Invalid email format');
             return;
         }
-        
+
         // Guardar valores temporales antes de limpiar
         const tempName = userName;
         const tempID = userID;
         const tempEmail = userEmail;
-        
+
+        setConfirmedPassenger(tempName);
         setShowUserModal(false);
         setUserName('');
         setUserID('');
         setUserEmail('');
-        
+
         await handleAction(actionType, tempName, tempID, tempEmail);
     };
 
@@ -128,7 +130,7 @@ const Booking = () => {
                     {t('booking.selected')}: <strong>{selectedSeat.id}</strong>. {flight.flightNumber} - {flight.origin} → {flight.destination}.
                 </p>
                 <div style={{ display: 'flex', gap: '16px' }}>
-                    <button onClick={() => generateTicketPDF({ flight, seat: selectedSeat })} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button onClick={() => generateTicketPDF({ flight, seat: selectedSeat, user: confirmedPassenger })} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <CreditCard size={18} />
                         <span>{t('booking.download_pdf')}</span>
                     </button>
@@ -152,7 +154,7 @@ const Booking = () => {
                 <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div>
                         <div style={{ fontSize: '0.75rem', color: 'hsl(var(--text-dim))', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('booking.seat_map')}</div>
-                        <h2 style={{ fontSize: '1.75rem' }}>{flight.aircraft}</h2>
+                        <h2 style={{ fontSize: '1.75rem' }}>{flight.aircraft?.includes('Escalas Optimizada') ? t('booking.aircraft_optimized', '') : flight.aircraft}</h2>
                     </div>
                     <div style={{ display: 'flex', gap: '20px' }}>
                         <Legend color="var(--success)" label={t('booking.available')} />
@@ -173,9 +175,9 @@ const Booking = () => {
                 }}>
                     {/* Section: First Class */}
                     <SeatGrid seats={seats.filter(s => s.type === 'FIRST_CLASS')} cols={4} onSeatClick={handleSeatClick} selectedId={selectedSeat?.id} />
-                    <div style={{ textAlign: 'center', margin: '32px 0', color: 'hsl(var(--text-dim))', fontSize: '0.75rem', fontWeight: 'bold' }}>--- FIRST CLASS ---</div>
+                    <div style={{ textAlign: 'center', margin: '32px 0', color: 'hsl(var(--text-dim))', fontSize: '0.75rem', fontWeight: 'bold' }}>{t('booking.header_first_class', '--- FIRST CLASS ---')}</div>
                     <SeatGrid seats={seats.filter(s => s.type === 'BUSINESS_CLASS')} cols={6} onSeatClick={handleSeatClick} selectedId={selectedSeat?.id} />
-                    <div style={{ textAlign: 'center', margin: '32px 0', color: 'hsl(var(--text-dim))', fontSize: '0.75rem', fontWeight: 'bold' }}>--- BUSINESS CLASS ---</div>
+                    <div style={{ textAlign: 'center', margin: '32px 0', color: 'hsl(var(--text-dim))', fontSize: '0.75rem', fontWeight: 'bold' }}>{t('booking.header_business_class', '--- BUSINESS CLASS ---')}</div>
                     <SeatGrid seats={seats.filter(s => s.type === 'ECONOMY_CLASS')} cols={6} onSeatClick={handleSeatClick} selectedId={selectedSeat?.id} />
                 </div>
             </div>
@@ -185,9 +187,10 @@ const Booking = () => {
                 <div className="glass" style={{ padding: '24px', borderRadius: 'var(--radius-lg)' }}>
                     <h3 style={{ marginBottom: '20px' }}>{t('booking.summary')}</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <SummaryItem icon={<ChevronLeft size={16} rotate={90} />} label="Vuelo" value={flight.flightNumber} />
-                        <SummaryItem icon={<Clock size={16} />} label="Hora" value={flight.departureTime?.split('T')[1]} />
-                        <SummaryItem icon={<Map size={16} />} label="Fecha" value={flight.departureTime?.split('T')[0]} />
+                        <SummaryItem icon={<ChevronLeft size={16} rotate={90} />} label={t('common.flight', 'Vuelo')} value={flight.flightNumber} />
+                        <SummaryItem icon={<Clock size={16} />} label={t('common.time', 'Hora')} value={flight.departureTime?.split('T')[1]?.substring(0, 5) + 'Z'} />
+                        <SummaryItem icon={<Map size={16} />} label={t('common.date', 'Fecha')} value={flight.departureTime?.split('T')[0]} />
+                        <SummaryItem icon={<CreditCard size={16} />} label={t('booking.base_price', 'Precio Base')} value={`$${flight.price}`} />
                     </div>
                 </div>
 
@@ -217,7 +220,7 @@ const Booking = () => {
                         </div>
                     ) : (
                         <div style={{ textAlign: 'center', padding: '20px', color: 'hsl(var(--text-dim))', fontSize: '0.875rem' }}>
-                            Por favor selecciona un asiento disponible en el mapa.
+                            {t('booking.please_select_seat', 'Por favor selecciona un asiento disponible en el mapa.')}
                         </div>
                     )}
                 </div>
@@ -226,7 +229,7 @@ const Booking = () => {
                     <div style={{ display: 'flex', gap: '12px' }}>
                         <ShieldCheck size={20} color="hsl(var(--primary))" />
                         <div style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>
-                            <strong>Pago Seguro:</strong> Todas las transacciones están encriptadas y sincronizadas mediante Vector Clocks para evitar sobreventas.
+                            <strong>{t('booking.secure_payment', 'Pago Seguro')}:</strong> {t('booking.secure_desc', 'Todas las transacciones están encriptadas y sincronizadas mediante Vector Clocks para evitar sobreventas.')}
                         </div>
                     </div>
                 </div>
@@ -234,95 +237,105 @@ const Booking = () => {
 
             {/* User Data Modal */}
             {showUserModal && (
-                <div style={{
+                <div className="animate-fade" style={{
                     position: 'fixed',
                     top: 0,
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    backdropFilter: 'blur(10px)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     zIndex: 9999
                 }}>
-                    <div style={{
-                        backgroundColor: 'white',
-                        borderRadius: '12px',
-                        padding: '32px',
-                        maxWidth: '400px',
+                    <div className="glass" style={{
+                        padding: '40px',
+                        borderRadius: 'var(--radius-xl)',
+                        maxWidth: '450px',
                         width: '90%',
-                        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)'
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+                        border: '2px solid hsla(var(--primary) / 0.3)'
                     }}>
-                        <h2 style={{ marginBottom: '24px', fontSize: '1.5rem', fontWeight: '700' }}>
-                            {t('booking.passenger_info') || 'Passenger Information'}
+                        <h2 style={{ marginBottom: '8px', fontSize: '1.75rem', fontWeight: '700', color: 'white', textAlign: 'center' }}>
+                            {t('booking.passenger_info', 'Información del Pasajero')}
                         </h2>
-                        
-                        <form onSubmit={handleUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <p style={{ color: 'hsl(var(--text-muted))', textAlign: 'center', marginBottom: '32px', fontSize: '0.875rem' }}>
+                            Por favor, ingresa los datos oficiales para la emisión del boleto.
+                        </p>
+
+                        <form onSubmit={handleUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '0.875rem' }}>
-                                    {t('booking.passenger_name') || 'Full Name'}
+                                <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600', fontSize: '0.85rem', color: 'hsl(var(--text-dim))' }}>
+                                    {t('booking.full_name', 'Nombre Completo')}
                                 </label>
                                 <input
                                     type="text"
                                     value={userName}
                                     onChange={(e) => setUserName(e.target.value)}
                                     placeholder="John Doe"
+                                    className="input-main glass"
                                     style={{
                                         width: '100%',
-                                        padding: '10px 12px',
-                                        border: '1px solid #e5e7eb',
-                                        borderRadius: '8px',
+                                        padding: '14px 16px',
                                         fontSize: '1rem',
-                                        boxSizing: 'border-box'
+                                        outline: 'none',
+                                        color: 'white',
+                                        background: 'rgba(0,0,0,0.4)',
+                                        border: '1px solid hsla(var(--primary) / 0.2)'
                                     }}
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '0.875rem' }}>
-                                    {t('booking.passenger_id') || 'ID / Passport'}
+                                <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600', fontSize: '0.85rem', color: 'hsl(var(--text-dim))' }}>
+                                    {t('booking.passport', 'Pasaporte / ID')}
                                 </label>
                                 <input
                                     type="text"
                                     value={userID}
                                     onChange={(e) => setUserID(e.target.value)}
                                     placeholder="12345678"
+                                    className="input-main glass"
                                     style={{
                                         width: '100%',
-                                        padding: '10px 12px',
-                                        border: '1px solid #e5e7eb',
-                                        borderRadius: '8px',
+                                        padding: '14px 16px',
                                         fontSize: '1rem',
-                                        boxSizing: 'border-box'
+                                        outline: 'none',
+                                        color: 'white',
+                                        background: 'rgba(0,0,0,0.4)',
+                                        border: '1px solid hsla(var(--primary) / 0.2)'
                                     }}
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '0.875rem' }}>
-                                    {t('booking.passenger_email') || 'Email'}
+                                <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600', fontSize: '0.85rem', color: 'hsl(var(--text-dim))' }}>
+                                    {t('booking.email', 'Correo Electrónico')}
                                 </label>
                                 <input
                                     type="email"
                                     value={userEmail}
                                     onChange={(e) => setUserEmail(e.target.value)}
                                     placeholder="passenger@example.com"
+                                    className="input-main glass"
                                     style={{
                                         width: '100%',
-                                        padding: '10px 12px',
-                                        border: '1px solid #e5e7eb',
-                                        borderRadius: '8px',
+                                        padding: '14px 16px',
                                         fontSize: '1rem',
-                                        boxSizing: 'border-box'
+                                        outline: 'none',
+                                        color: 'white',
+                                        background: 'rgba(0,0,0,0.4)',
+                                        border: '1px solid hsla(var(--primary) / 0.2)'
                                     }}
                                     required
                                 />
                             </div>
 
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                            <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -331,32 +344,31 @@ const Booking = () => {
                                         setUserID('');
                                         setUserEmail('');
                                     }}
+                                    className="glass-light"
                                     style={{
                                         flex: 1,
-                                        padding: '12px',
-                                        border: '1px solid #e5e7eb',
-                                        borderRadius: '8px',
-                                        backgroundColor: '#f3f4f6',
+                                        padding: '14px',
+                                        borderRadius: 'var(--radius-md)',
                                         cursor: 'pointer',
-                                        fontWeight: '600'
+                                        fontWeight: '600',
+                                        color: 'white',
+                                        border: '1px solid hsla(0, 0%, 100%, 0.1)'
                                     }}
                                 >
-                                    {t('common.cancel') || 'Cancel'}
+                                    {t('common.cancel') || 'Cancelar'}
                                 </button>
                                 <button
                                     type="submit"
+                                    className="btn-primary"
                                     style={{
-                                        flex: 1,
-                                        padding: '12px',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        backgroundColor: 'hsl(var(--primary))',
-                                        color: 'white',
+                                        flex: 2,
+                                        padding: '14px',
                                         cursor: 'pointer',
-                                        fontWeight: '600'
+                                        fontWeight: '700',
+                                        boxShadow: '0 4px 15px hsla(var(--primary) / 0.4)'
                                     }}
                                 >
-                                    {t('common.confirm') || 'Confirm'}
+                                    {t('common.confirm') || 'Confirmar'}
                                 </button>
                             </div>
                         </form>
@@ -387,18 +399,21 @@ const SeatGrid = ({ seats, cols, onSeatClick, selectedId }) => (
 
 const SeatIcon = ({ seat, isSelected, onClick }) => {
     const isAvailable = seat.status === 'AVAILABLE';
-    const color = isSelected ? 'var(--primary)' :
-        seat.status === 'RESERVED' ? 'var(--warning)' :
-            seat.status === 'BOOKED' ? 'var(--danger)' : 'var(--success)';
+    const isBooked = seat.status === 'BOOKED' || seat.status === 'RESERVED';
+    
+    // Color mapping
+    const colorClass = isSelected ? 'var(--primary)' : 
+                       isBooked ? '#ef4444' : 
+                       'var(--success)';
 
     return (
         <div
-            onClick={onClick}
+            onClick={isAvailable ? onClick : undefined}
             style={{
                 width: '32px',
                 height: '36px',
-                background: isSelected ? 'hsl(var(--primary))' : isAvailable ? 'hsla(var(--success) / 0.1)' : 'hsla(white / 0.05)',
-                border: `1.5px solid ${isAvailable ? `hsl(${color})` : 'hsl(var(--border))'}`,
+                background: isSelected ? 'hsl(var(--primary))' : isBooked ? 'rgba(239, 68, 68, 0.2)' : 'hsla(var(--success) / 0.1)',
+                border: `1.5px solid ${isSelected ? 'white' : isBooked ? '#ef4444' : 'hsla(var(--success) / 0.4)'}`,
                 borderRadius: '6px 6px 2px 2px',
                 cursor: isAvailable ? 'pointer' : 'not-allowed',
                 display: 'flex',
@@ -406,20 +421,15 @@ const SeatIcon = ({ seat, isSelected, onClick }) => {
                 justifyContent: 'center',
                 fontSize: '0.625rem',
                 fontWeight: 'bold',
-                color: isSelected ? 'white' : isAvailable ? `hsl(${color})` : 'hsl(var(--text-dim))',
+                color: isSelected ? 'white' : isBooked ? '#ef4444' : 'hsl(var(--success))',
                 transition: 'all 0.2s ease',
-                boxShadow: isSelected ? '0 0 15px hsla(var(--primary) / 0.4)' : 'none'
+                boxShadow: isSelected ? '0 0 15px hsla(var(--primary) / 0.4)' : 'none',
+                opacity: isAvailable || isSelected ? 1 : 0.8
             }}
             className={isAvailable ? 'seat-hover' : ''}
+            title={isBooked ? 'Ocupado' : 'Disponible'}
         >
             {seat.id}
-            <style>{`
-        .seat-hover:hover {
-          transform: translateY(-2px);
-          filter: brightness(1.2);
-          box-shadow: 0 4px 10px hsla(var(--primary) / 0.2);
-        }
-      `}</style>
         </div>
     );
 };

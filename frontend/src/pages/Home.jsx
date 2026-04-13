@@ -38,7 +38,7 @@ const Home = () => {
                 <p style={{ color: 'hsl(var(--text-muted))', fontSize: '1.125rem' }}>{t('home.subtitle')}</p>
             </header>
 
-            {/* Visión Institucional de Aerolíneas Rafael Pabón */}
+            {/* Visión Institucional */}
             <div className="glass" style={{ display: 'flex', alignItems: 'center', gap: '32px', padding: '32px', borderRadius: 'var(--radius-xl)', background: 'linear-gradient(135deg, hsla(var(--primary) / 0.1) 0%, hsla(var(--accent) / 0.05) 100%)' }}>
                 <div style={{ flex: '0 0 160px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
                     <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'hsl(var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px hsla(var(--primary) / 0.3)' }}>
@@ -46,16 +46,13 @@ const Home = () => {
                     </div>
                 </div>
                 <div style={{ flex: '1' }}>
-                    <h2 style={{ fontSize: '1.75rem', marginBottom: '16px', color: 'hsl(var(--primary))' }}>Aerolíneas Rafael Pabón</h2>
+                    <h2 style={{ fontSize: '1.75rem', marginBottom: '16px', color: 'hsl(var(--primary))' }}>{t('home.company_name')}</h2>
                     <p style={{ fontSize: '1.125rem', lineHeight: '1.7', color: 'hsl(var(--text-dim))' }}>
-                        Aerolíneas Rafael Pabon, opera vuelos a múltiples destinos alrededor del mundo. La aerolínea ha decidido
-                        implementar un sistema de reservas en línea distribuido para manejar las operaciones de reserva, venta y
-                        anulación de boletos aéreos. Este sistema debe asegurar la consistencia y sincronización entre los diferentes
-                        nodos distribuidos para evitar la sobreventa de boletos y garantizar una experiencia de usuario fluida y precisa.
+                        {t('home.company_desc')}
                     </p>
                     <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
-                        <span style={{ fontSize: '0.875rem', padding: '6px 16px', background: 'hsla(var(--primary) / 0.1)', color: 'hsl(var(--primary))', borderRadius: '20px', fontWeight: '600' }}>Sistema CP (Consistencia Estricta)</span>
-                        <span style={{ fontSize: '0.875rem', padding: '6px 16px', background: 'hsla(var(--success) / 0.1)', color: 'hsl(var(--success))', borderRadius: '20px', fontWeight: '600' }}>Cero Retrasos / Cero Cancelaciones</span>
+                        <span style={{ fontSize: '0.875rem', padding: '6px 16px', background: 'hsla(var(--primary) / 0.1)', color: 'hsl(var(--primary))', borderRadius: '20px', fontWeight: '600' }}>{t('home.badge_cp')}</span>
+                        <span style={{ fontSize: '0.875rem', padding: '6px 16px', background: 'hsla(var(--success) / 0.1)', color: 'hsl(var(--success))', borderRadius: '20px', fontWeight: '600' }}>{t('home.badge_zero')}</span>
                     </div>
                 </div>
             </div>
@@ -67,24 +64,28 @@ const Home = () => {
                     label={t('home.stats.active_flights')}
                     value={stats?.totalFlights || 0}
                     trend="+12%"
+                    trendLabel={t('common.vs_yesterday')}
                 />
                 <DashboardCard
                     icon={<Users size={24} />}
                     label={t('home.stats.passengers')}
                     value={stats?.totalBooked || 0}
                     trend="+5.4%"
+                    trendLabel={t('common.vs_yesterday')}
                 />
                 <DashboardCard
                     icon={<Activity size={24} />}
-                    label="Ocupación Promedio"
+                    label={t('home.stats.avg_occupancy')}
                     value={`${stats?.avgOccupancy || 0}%`}
-                    trend="Estable"
+                    trend={t('common.stable')}
+                    trendLabel={t('common.vs_yesterday')}
                 />
                 <DashboardCard
                     icon={<DollarSign size={24} />}
-                    label="Ingresos Totales"
+                    label={t('home.stats.total_revenue')}
                     value={`$${(stats?.totalRevenue || 0).toLocaleString()}`}
                     trend="+18.2%"
+                    trendLabel={t('common.vs_yesterday')}
                 />
             </div>
 
@@ -93,7 +94,7 @@ const Home = () => {
                 <div className="glass" style={{ padding: '32px', borderRadius: 'var(--radius-xl)' }}>
                     <h3 style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <BarChart3 size={20} color="hsl(var(--primary))" />
-                        Distribución de Estados
+                        {t('home.status_distribution')}
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         {Object.entries(stats?.statusCounts || {}).map(([status, count]) => (
@@ -111,15 +112,15 @@ const Home = () => {
                 <div className="glass" style={{ padding: '32px', borderRadius: 'var(--radius-xl)' }}>
                     <h3 style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <Shield size={20} color="hsl(var(--success))" />
-                        Estado del Clúster
+                        {t('home.cluster_status')}
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                        <NodeHealth name="Nodo 1 (Principal)" status="Online" latency="12ms" />
-                        <NodeHealth name="Nodo 2" status="Online" latency="15ms" />
-                        <NodeHealth name="Nodo 3" status="Online" latency="22ms" />
+                        <NodeHealth name={t('home.node_primary')} latency="12ms" />
+                        <NodeHealth name={t('home.node_2')} latency="15ms" />
+                        <NodeHealth name={t('home.node_3')} latency="22ms" />
                         <div style={{ marginTop: 'auto', padding: '16px', background: 'hsla(var(--primary) / 0.05)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>
-                            <div style={{ fontWeight: '700', marginBottom: '4px', color: 'hsl(var(--primary))' }}>Sincronización</div>
-                            <div style={{ color: 'hsl(var(--text-muted))' }}>Vector Clocks activos. Consistencia eventual garantizada.</div>
+                            <div style={{ fontWeight: '700', marginBottom: '4px', color: 'hsl(var(--primary))' }}>{t('home.sync_title')}</div>
+                            <div style={{ color: 'hsl(var(--text-muted))' }}>{t('home.sync_desc')}</div>
                         </div>
                     </div>
                 </div>
@@ -128,12 +129,12 @@ const Home = () => {
     );
 };
 
-const DashboardCard = ({ icon, label, value, trend }) => (
+const DashboardCard = ({ icon, label, value, trend, trendLabel }) => (
     <div className="glass card-hover" style={{ padding: '32px', borderRadius: 'var(--radius-xl)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ color: 'hsl(var(--primary))', marginBottom: '20px' }}>{icon}</div>
         <div style={{ fontSize: '0.875rem', color: 'hsl(var(--text-dim))', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>{label}</div>
         <div style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '8px' }}>{value}</div>
-        <div style={{ fontSize: '0.75rem', color: 'hsl(var(--success))', fontWeight: '600' }}>{trend} vs ayer</div>
+        <div style={{ fontSize: '0.75rem', color: 'hsl(var(--success))', fontWeight: '600' }}>{trend} {trendLabel}</div>
         <div style={{ position: 'absolute', right: '-20px', bottom: '-20px', opacity: 0.05 }}>{icon}</div>
     </div>
 );
@@ -160,7 +161,7 @@ const StatusRow = ({ status, count, total }) => {
     );
 };
 
-const NodeHealth = ({ name, status, latency }) => (
+const NodeHealth = ({ name, latency }) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '10px', height: '10px', background: 'hsl(var(--success))', borderRadius: '50%' }}></div>

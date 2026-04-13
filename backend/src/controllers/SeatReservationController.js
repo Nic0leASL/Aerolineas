@@ -84,7 +84,27 @@ export class SeatReservationController {
       }
 
       // Obtener vuelo
-      const flight = this.flightService.getFlight(flightId);
+      let flight = this.flightService.getFlight(flightId);
+
+      // SOPORTE PARA VUELOS VIRTUALES (DIJKSTRA/ESCALAS)
+      if (!flight && flightId.includes('_MULTIHOP')) {
+          const parts = flightId.split('_')[0].split('-');
+          flight = {
+              id: flightId,
+              flightNumber: `MULTI-${parts[0]}-${parts[parts.length-1]}`,
+              origin: parts[0],
+              destination: parts[parts.length-1],
+              price: 1200,
+              getSeat: (num) => ({
+                  seatNumber: num,
+                  seatType: num.includes('1') || num.includes('2') ? 'FIRST_CLASS' : 'ECONOMY_CLASS',
+                  status: 'AVAILABLE',
+                  isAvailable: () => true
+              })
+          };
+          logger.info('Procesando reserva de ruta virtual MULTIHOP', { flightId });
+      }
+
       if (!flight) {
         return res.status(404).json({
           success: false,

@@ -15,17 +15,15 @@ class SeatOccupancyService {
      * @param {Object} config.reservado - % reservado por tipo
      */
     constructor(config = {}) {
-        // Porcentajes por defecto (basados en enunciado típico)
+        // Porcentajes por defecto según PDF: 73% vendidos, 3% reservados (configurable)
         this.config = {
             vendido: {
-                FIRST_CLASS: config?.vendido?.FIRST_CLASS ?? 30,
-                BUSINESS_CLASS: config?.vendido?.BUSINESS_CLASS ?? 40,
-                ECONOMY_CLASS: config?.vendido?.ECONOMY_CLASS ?? 50
+                FIRST_CLASS: config?.vendido?.FIRST_CLASS ?? 73,
+                ECONOMY_CLASS: config?.vendido?.ECONOMY_CLASS ?? 73
             },
             reservado: {
-                FIRST_CLASS: config?.reservado?.FIRST_CLASS ?? 20,
-                BUSINESS_CLASS: config?.reservado?.BUSINESS_CLASS ?? 15,
-                ECONOMY_CLASS: config?.reservado?.ECONOMY_CLASS ?? 10
+                FIRST_CLASS: config?.reservado?.FIRST_CLASS ?? 3,
+                ECONOMY_CLASS: config?.reservado?.ECONOMY_CLASS ?? 3
             }
         };
     }
@@ -43,14 +41,12 @@ class SeatOccupancyService {
 
         const stats = {
             FIRST_CLASS: { total: 0, vendidos: 0, reservados: 0, disponibles: 0 },
-            BUSINESS_CLASS: { total: 0, vendidos: 0, reservados: 0, disponibles: 0 },
             ECONOMY_CLASS: { total: 0, vendidos: 0, reservados: 0, disponibles: 0 }
         };
 
         // Agrupar asientos por tipo
         const seatsByType = {
             FIRST_CLASS: [],
-            BUSINESS_CLASS: [],
             ECONOMY_CLASS: []
         };
 

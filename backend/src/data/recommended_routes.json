@@ -1,0 +1,250 @@
+{
+  "america": {
+    "region": "América",
+    "descripcion": "Rutas desde América (ATL, LAX, DFW, SAO)",
+    "hubs": ["ATL", "LAX", "DFW", "SAO"],
+    "desde_ATL": {
+      "hub": "ATL",
+      "nota": "Atlanta - el mejor hub de América",
+      "rutas": [
+        {
+          "destino": "PEK",
+          "region_destino": "Asia",
+          "opciones": [
+            { "tipo": "rapida", "ruta": ["ATL", "PEK"], "escalas": [], "tiempo_aprox": "15h", "directo": true },
+            { "tipo": "barata", "ruta": ["ATL", "CAN", "PEK"], "escalas": ["CAN"], "tiempo_aprox": "19h", "directo": false },
+            { "tipo": "alternativa", "ruta": ["ATL", "IST", "PEK"], "escalas": ["IST"], "tiempo_aprox": "20h", "directo": false }
+          ]
+        },
+        {
+          "destino": "TYO",
+          "region_destino": "Asia",
+          "opciones": [
+            { "tipo": "rapida", "ruta": ["ATL", "PEK", "TYO"], "escalas": ["PEK"], "tiempo_aprox": "18h", "directo": false },
+            { "tipo": "barata", "ruta": ["ATL", "TYO"], "escalas": [], "tiempo_aprox": "16h", "directo": true },
+            { "tipo": "alternativa", "ruta": ["ATL", "CAN", "TYO"], "escalas": ["CAN"], "tiempo_aprox": "20h", "directo": false }
+          ]
+        },
+        {
+          "destino": "SIN",
+          "region_destino": "Asia",
+          "opciones": [
+            { "tipo": "rapida", "ruta": ["ATL", "SIN"], "escalas": [], "tiempo_aprox": "18h", "directo": true },
+            { "tipo": "barata", "ruta": ["ATL", "CAN", "SIN"], "escalas": ["CAN"], "tiempo_aprox": "20h", "directo": false },
+            { "tipo": "alternativa", "ruta": ["ATL", "IST", "SIN"], "escalas": ["IST"], "tiempo_aprox": "21h", "directo": false }
+          ]
+        },
+        {
+          "destino": "DXB",
+          "region_destino": "Medio Oriente",
+          "opciones": [
+            { "tipo": "rapida", "ruta": ["ATL", "DXB"], "escalas": [], "tiempo_aprox": "14h", "directo": true },
+            { "tipo": "barata", "ruta": ["ATL", "IST", "DXB"], "escalas": ["IST"], "tiempo_aprox": "18-20h", "directo": false },
+            { "tipo": "alternativa", "ruta": ["ATL", "FRA", "DXB"], "escalas": ["FRA"], "tiempo_aprox": "18h", "directo": false }
+          ]
+        },
+        {
+          "destino": "LON/PAR/FRA",
+          "region_destino": "Europa",
+          "opciones": [
+            { "tipo": "rapida", "ruta": ["ATL", "LON"], "escalas": [], "tiempo_aprox": "8-9h", "directo": true, "nota": "Directo a LON, PAR o FRA" },
+            { "tipo": "barata", "ruta": ["ATL", "AMS", "destino"], "escalas": ["AMS"], "tiempo_aprox": "9-10h", "directo": false },
+            { "tipo": "alternativa", "ruta": ["ATL", "IST", "destino"], "escalas": ["IST"], "tiempo_aprox": "11-12h", "directo": false }
+          ]
+        },
+        {
+          "destino": "SAO",
+          "region_destino": "Sudamérica",
+          "opciones": [
+            { "tipo": "rapida", "ruta": ["ATL", "SAO"], "escalas": [], "tiempo_aprox": "9h", "directo": true },
+            { "tipo": "barata", "ruta": ["ATL", "MAD", "SAO"], "escalas": ["MAD"], "tiempo_aprox": "18h", "directo": false },
+            { "tipo": "alternativa", "ruta": ["ATL", "PAR", "SAO"], "escalas": ["PAR"], "tiempo_aprox": "21h", "directo": false }
+          ]
+        }
+      ]
+    },
+    "desde_SAO": {
+      "hub": "SAO",
+      "nota": "São Paulo - importante para clientes de Sudamérica",
+      "rutas": [
+        {
+          "destino": "PEK",
+          "region_destino": "Asia",
+          "opciones": [
+            { "tipo": "rapida", "ruta": ["SAO", "IST", "PEK"], "escalas": ["IST"], "tiempo_aprox": "22-25h", "directo": false },
+            { "tipo": "barata", "ruta": ["SAO", "ATL", "PEK"], "escalas": ["ATL"], "tiempo_aprox": "24h", "directo": false },
+            { "tipo": "alternativa", "ruta": ["SAO", "CAN", "PEK"], "escalas": ["CAN"], "tiempo_aprox": "26h", "directo": false }
+          ]
+        },
+        {
+          "destino": "TYO",
+          "region_destino": "Asia",
+          "opciones": [
+            { "tipo": "rapida", "ruta": ["SAO", "PEK", "TYO"], "escalas": ["PEK"], "tiempo_aprox": "25h", "directo": false },
+            { "tipo": "barata", "ruta": ["SAO", "ATL", "TYO"], "escalas": ["ATL"], "tiempo_aprox": "25h", "directo": false },
+            { "tipo": "alternativa", "ruta": ["SAO", "DXB", "TYO"], "escalas": ["DXB"], "tiempo_aprox": "25h", "directo": false }
+          ]
+        },
+        {
+          "destino": "SIN",
+          "region_destino": "Asia",
+          "opciones": [
+            { "tipo": "rapida", "ruta": ["SAO", "IST", "SIN"], "escalas": ["IST"], "tiempo_aprox": "23h", "directo": false },
+            { "tipo": "barata", "ruta": ["SAO", "CAN", "SIN"], "escalas": ["CAN"], "tiempo_aprox": "27h", "directo": false },
+            { "tipo": "alternativa", "ruta": ["SAO", "ATL", "SIN"], "escalas": ["ATL"], "tiempo_aprox": "27h", "directo": false }
+          ]
+        },
+        {
+          "destino": "DXB",
+          "region_destino": "Medio Oriente",
+          "opciones": [
+            { "tipo": "rapida", "ruta": ["SAO", "IST", "DXB"], "escalas": ["IST"], "tiempo_aprox": "20-22h", "directo": false },
+            { "tipo": "barata", "ruta": ["SAO", "ATL", "DXB"], "escalas": ["ATL"], "tiempo_aprox": "23h", "directo": false },
+            { "tipo": "alternativa", "ruta": ["SAO", "FRA", "DXB"], "escalas": ["FRA"], "tiempo_aprox": "21h", "directo": false }
+          ]
+        },
+        {
+          "destino": "Europa",
+          "region_destino": "Europa",
+          "opciones": [
+            { "tipo": "rapida", "ruta": ["SAO", "MAD", "destino"], "escalas": ["MAD"], "tiempo_aprox": "10-13h", "directo": false, "nota": "También SAO → IST → destino" },
+            { "tipo": "barata", "ruta": ["SAO", "ATL", "LON"], "escalas": ["ATL"], "tiempo_aprox": "17-20h", "directo": false, "nota": "SAO → ATL → LON/PAR" },
+            { "tipo": "alternativa", "ruta": ["SAO", "FRA", "destino"], "escalas": ["FRA"], "tiempo_aprox": "21h", "directo": false }
+          ]
+        }
+      ]
+    }
+  },
+  "europa": {
+    "region": "Europa",
+    "descripcion": "Rutas desde Europa (LON, PAR, FRA, MAD, AMS, IST)",
+    "hubs": ["LON", "PAR", "FRA", "MAD", "AMS", "IST"],
+    "intra_europa": {
+      "nota": "Rutas intra-Europa: muy fáciles de vender, cortas y baratas",
+      "rutas_directas": [
+        { "par": ["LON", "PAR"], "tiempo": "1-2h", "tipo": "directo" },
+        { "par": ["LON", "FRA"], "tiempo": "1-2h", "tipo": "directo" },
+        { "par": ["LON", "AMS"], "tiempo": "1-2h", "tipo": "directo" },
+        { "par": ["LON", "MAD"], "tiempo": "1-2h", "tipo": "directo" },
+        { "par": ["PAR", "FRA"], "tiempo": "1h", "tipo": "directo" },
+        { "par": ["PAR", "AMS"], "tiempo": "1h", "tipo": "directo" },
+        { "par": ["FRA", "AMS"], "tiempo": "1-2h", "tipo": "directo" },
+        { "par": ["FRA", "MAD"], "tiempo": "1-2h", "tipo": "directo" },
+        { "par": ["IST", "LON"], "tiempo": "3-4h", "tipo": "conexion", "nota": "IST ↔ cualquier ciudad europea → muy buena conexión" },
+        { "par": ["IST", "PAR"], "tiempo": "3-4h", "tipo": "conexion" },
+        { "par": ["IST", "FRA"], "tiempo": "3-4h", "tipo": "conexion" },
+        { "par": ["IST", "MAD"], "tiempo": "3-4h", "tipo": "conexion" },
+        { "par": ["IST", "AMS"], "tiempo": "3-4h", "tipo": "conexion" }
+      ]
+    },
+    "europa_a_asia": {
+      "nota": "Rutas Europa → Asia / Medio Oriente",
+      "rutas": [
+        {
+          "origen": "LON/PAR/FRA",
+          "destino": "PEK",
+          "opciones": [
+            { "tipo": "rapida", "ruta": ["FRA", "PEK"], "escalas": [], "tiempo_aprox": "11-13h", "directo": true, "nota": "FRA/PAR → PEK o vía IST" },
+            { "tipo": "barata", "ruta": ["IST", "PEK"], "escalas": ["IST"], "tiempo_aprox": "13-15h", "directo": false, "nota": "vía IST → PEK" },
+            { "tipo": "alternativa", "ruta": ["DXB", "PEK"], "escalas": ["DXB"], "tiempo_aprox": "15h", "directo": false, "nota": "vía DXB → PEK" }
+          ]
+        },
+        {
+          "origen": "LON/PAR/FRA",
+          "destino": "TYO",
+          "opciones": [
+            { "tipo": "rapida", "ruta_desc": "vía PEK o vía IST", "escalas": ["PEK"], "tiempo_aprox": "14-16h", "directo": false },
+            { "tipo": "barata", "ruta_desc": "vía SIN → TYO", "escalas": ["SIN"], "tiempo_aprox": "16h", "directo": false },
+            { "tipo": "alternativa", "ruta_desc": "vía DXB", "escalas": ["DXB"], "tiempo_aprox": "17h", "directo": false }
+          ]
+        },
+        {
+          "origen": "LON/PAR/FRA",
+          "destino": "SIN",
+          "opciones": [
+            { "tipo": "rapida", "ruta_desc": "vía IST o vía DXB", "escalas": ["IST"], "tiempo_aprox": "12-14h", "directo": false },
+            { "tipo": "barata", "ruta_desc": "vía PEK → SIN", "escalas": ["PEK"], "tiempo_aprox": "14h", "directo": false },
+            { "tipo": "alternativa", "ruta_desc": "Directo si disponible", "escalas": [], "tiempo_aprox": "13h", "directo": true }
+          ]
+        },
+        {
+          "origen": "LON/PAR/FRA",
+          "destino": "DXB",
+          "opciones": [
+            { "tipo": "rapida", "ruta_desc": "vía IST o directo", "escalas": ["IST"], "tiempo_aprox": "6-8h", "directo": false },
+            { "tipo": "barata", "ruta_desc": "vía FRA → DXB", "escalas": ["FRA"], "tiempo_aprox": "7h", "directo": false },
+            { "tipo": "alternativa", "ruta_desc": "vía LON", "escalas": ["LON"], "tiempo_aprox": "8h", "directo": false }
+          ]
+        }
+      ]
+    },
+    "europa_a_america": {
+      "nota": "Rutas Europa → América",
+      "rutas": [
+        { "destino": "ATL/LAX/DFW", "ruta_desc": "vía ATL o directo", "tiempo_aprox": "8-11h" },
+        { "destino": "SAO", "ruta_desc": "vía MAD, IST o ATL", "tiempo_aprox": "12-15h" }
+      ]
+    }
+  },
+  "asia_medio_oriente": {
+    "region": "Asia + Medio Oriente",
+    "descripcion": "Rutas desde Asia + Medio Oriente (PEK, TYO, DXB, SIN, CAN)",
+    "hubs": ["PEK", "TYO", "DXB", "SIN", "CAN"],
+    "rutas": [
+      {
+        "origen": "PEK",
+        "destino": "TYO",
+        "opciones": [
+          { "tipo": "rapida", "ruta": ["PEK", "TYO"], "escalas": [], "tiempo_aprox": "3h", "directo": true },
+          { "tipo": "barata", "ruta": ["PEK", "CAN", "TYO"], "escalas": ["CAN"], "tiempo_aprox": "7h", "directo": false },
+          { "tipo": "alternativa", "ruta": null, "escalas": null, "tiempo_aprox": null, "directo": false }
+        ]
+      },
+      {
+        "origen": "PEK/CAN",
+        "destino": "SIN",
+        "opciones": [
+          { "tipo": "rapida", "ruta": ["PEK", "SIN"], "escalas": [], "tiempo_aprox": "6h", "directo": true, "nota": "PEK directo 6h / CAN directo 4h" },
+          { "tipo": "barata", "ruta_desc": "vía DXB", "escalas": ["DXB"], "tiempo_aprox": "12h", "directo": false },
+          { "tipo": "alternativa", "ruta_desc": "vía IST", "escalas": ["IST"], "tiempo_aprox": "13h", "directo": false }
+        ]
+      },
+      {
+        "origen": "PEK/CAN",
+        "destino": "ATL",
+        "opciones": [
+          { "tipo": "rapida", "ruta": ["PEK", "ATL"], "escalas": [], "tiempo_aprox": "15-18h", "directo": true, "nota": "PEK → ATL directo o vía TYO" },
+          { "tipo": "barata", "ruta": ["CAN", "ATL"], "escalas": [], "tiempo_aprox": "19h", "directo": true, "nota": "CAN → ATL" },
+          { "tipo": "alternativa", "ruta_desc": "vía IST", "escalas": ["IST"], "tiempo_aprox": "20h", "directo": false }
+        ]
+      },
+      {
+        "origen": "PEK/CAN",
+        "destino": "SAO",
+        "opciones": [
+          { "tipo": "rapida", "ruta": ["PEK", "CAN", "SAO"], "escalas": ["CAN"], "tiempo_aprox": "26h", "directo": false },
+          { "tipo": "barata", "ruta_desc": "vía IST → SAO", "escalas": ["IST"], "tiempo_aprox": "22h", "directo": false },
+          { "tipo": "alternativa", "ruta_desc": "vía ATL → SAO", "escalas": ["ATL"], "tiempo_aprox": "24h", "directo": false }
+        ]
+      },
+      {
+        "origen": "DXB",
+        "destino": "Europa",
+        "opciones": [
+          { "tipo": "rapida", "ruta_desc": "DXB → IST/FRA/LON", "escalas": [], "tiempo_aprox": "6-8h", "directo": true },
+          { "tipo": "barata", "ruta_desc": "Directo o 1 escala", "escalas": [], "tiempo_aprox": "7h", "directo": true },
+          { "tipo": "alternativa", "ruta": null, "escalas": null, "tiempo_aprox": null, "directo": false }
+        ]
+      },
+      {
+        "origen": "SIN",
+        "destino": "Europa",
+        "opciones": [
+          { "tipo": "rapida", "ruta_desc": "SIN → IST/FRA", "escalas": ["IST"], "tiempo_aprox": "12-14h", "directo": false },
+          { "tipo": "barata", "ruta_desc": "vía DXB", "escalas": ["DXB"], "tiempo_aprox": "13h", "directo": false },
+          { "tipo": "alternativa", "ruta_desc": "vía LON", "escalas": ["LON"], "tiempo_aprox": "15h", "directo": false }
+        ]
+      }
+    ]
+  }
+}

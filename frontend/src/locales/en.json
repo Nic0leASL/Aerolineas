@@ -1,61 +1,129 @@
 {
-    "translation": {
-        "nav": {
-            "dashboard": "Explore Dashboard",
-            "flights": "Search Flights",
-            "bookings": "My Bookings",
-            "routes": "Optimal Routes",
-            "settings": "Settings"
-        },
-        "common": {
-            "search": "Search",
-            "select": "Select",
-            "back": "Back",
-            "confirm": "Confirm",
-            "cancel": "Cancel",
-            "loading": "Loading...",
-            "success": "Success!",
-            "error": "Error"
-        },
-        "home": {
-            "title": "Distributed System Dashboard",
-            "subtitle": "Real-time monitoring of flights and reservations.",
-            "stats": {
-                "airports": "Airports",
-                "active_flights": "Active Flights",
-                "passengers": "Passengers",
-                "latency": "Avg. Latency"
-            }
-        },
-        "search": {
-            "title": "Find your next destination",
-            "subtitle": "Explore thousands of routes in our high-availability distributed network.",
-            "origin": "Origin",
-            "destination": "Destination",
-            "date": "Date",
-            "no_results": "No flights found."
-        },
-        "booking": {
-            "seat_map": "Seat Map",
-            "available": "Available",
-            "reserved": "Reserved",
-            "occupied": "Occupied",
-            "selected": "Selected",
-            "summary": "Flight Summary",
-            "reserve": "Temporary Reserve",
-            "buy": "Buy Now",
-            "download_pdf": "Download Ticket PDF",
-            "return_home": "Return Home"
-        },
-        "routes": {
-            "cheapest": "Cheapest Route",
-            "fastest": "Fastest Route",
-            "tsp": "Multi-Destination (TSP)",
-            "calculate": "Calculate Optimal Route",
-            "itinerary": "Calculated Itinerary",
-            "origin": "Origin",
-            "destination": "Destination",
-            "via": "Waypoints (comma separated)"
-        }
+  "translation": {
+    "nav": {
+      "dashboard": "Explore Dashboard",
+      "flights": "Search Flights",
+      "bookings": "My Bookings",
+      "routes": "Optimal Routes",
+      "settings": "Settings",
+      "dashboard_global": "Global Dashboard",
+      "recommended_routes": "Routes & Layovers"
+    },
+    "common": {
+      "search": "Search",
+      "select": "Select",
+      "back": "Back",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "loading": "Loading...",
+      "success": "Success!",
+      "error": "Error",
+      "vs_yesterday": "vs yesterday",
+      "stable": "Stable",
+      "direct": "Direct"
+    },
+    "home": {
+      "title": "Distributed System Dashboard",
+      "subtitle": "Real-time monitoring of flights and reservations.",
+      "company_name": "Rafael Pabón Airlines",
+      "company_desc": "Rafael Pabón Airlines operates flights to multiple destinations around the world. The airline has implemented a distributed online reservation system to manage booking, sales, and cancellation operations, ensuring consistency and synchronization across distributed nodes to prevent overbooking.",
+      "badge_cp": "CP System (Strict Consistency)",
+      "badge_zero": "Zero Delays / Zero Cancellations",
+      "stats": {
+        "airports": "Airports",
+        "active_flights": "Active Flights",
+        "passengers": "Passengers",
+        "latency": "Avg. Latency",
+        "avg_occupancy": "Average Occupancy",
+        "total_revenue": "Total Revenue"
+      },
+      "status_distribution": "Status Distribution",
+      "cluster_status": "Cluster Status",
+      "node_primary": "Node 1 (Primary)",
+      "node_2": "Node 2",
+      "node_3": "Node 3",
+      "sync_title": "Synchronization",
+      "sync_desc": "Vector Clocks active. Eventual consistency guaranteed."
+    },
+    "search": {
+      "title": "Find your next destination",
+      "subtitle": "Explore thousands of routes in our high-availability distributed network.",
+      "origin": "Origin",
+      "destination": "Destination",
+      "date": "Date",
+      "no_results": "No flights found.",
+      "connection_terminal": "Connection Terminal (Your location)",
+      "filter_by": "Filter by",
+      "cheapest": "Cheapest",
+      "fastest": "Fastest",
+      "clear_filter": "Clear Filter",
+      "direct_flights": "direct flights",
+      "suggested_layovers": "suggested layovers",
+      "smart_recommendations": "Smart Recommendations (Multiple Layovers)",
+      "option": "Option",
+      "total_cost": "Total Cost",
+      "total_time": "Total Time",
+      "layover_route": "Layover Route",
+      "stops": "Stops",
+      "buy_flight": "Buy Flight",
+      "direct_flights_found": "Direct Flights Found",
+      "no_direct_flights": "No direct flights. Check our multi-layover recommendations above.",
+      "super_cheap": "Super Cheap",
+      "extra_fast": "Extra Fast",
+      "arrival": "Arrival",
+      "from": "From"
+    },
+    "booking": {
+      "seat_map": "Seat Map",
+      "available": "Available",
+      "reserved": "Reserved",
+      "occupied": "Occupied",
+      "selected": "Selected",
+      "summary": "Flight Summary",
+      "reserve": "Temporary Reserve",
+      "buy": "Buy Now",
+      "download_pdf": "Download Ticket PDF",
+      "return_home": "Return Home",
+      "secure_payment": "Secure Payment",
+      "secure_desc": "All transactions are encrypted and synchronized via Vector Clocks to prevent overbooking.",
+      "passenger_info": "Passenger Information",
+      "full_name": "Full Name",
+      "passport": "Passport / ID",
+      "email": "Email Address",
+      "base_price": "Base Price"
+    },
+    "routes": {
+      "america": "America",
+      "europe": "Europe",
+      "asia": "Asia + M. East",
+      "search_with_layovers": "Search Route with Layovers",
+      "from": "From",
+      "intra_europe": "Intra-Europe Routes (Direct)",
+      "eu_asia": "Europe → Asia / Middle East",
+      "routes": "Routes",
+      "origin": "Origin",
+      "destination": "Destination"
+    },
+    "dashboard": {
+      "total_flights": "Total Flights",
+      "seats_sold": "Seats Sold",
+      "occupancy": "occupancy",
+      "seats_reserved": "Reserved",
+      "total_revenue": "Total Revenue",
+      "revenue_by_class": "Revenue by Class",
+      "first_class": "First Class",
+      "economy_class": "Economy Class",
+      "total_revenue_upper": "TOTAL REVENUE",
+      "replication_status": "Replication Status (3 Nodes)",
+      "node1": "Node 1 — SQL Server (Europe)",
+      "node2": "Node 2 — SQL Server (Asia)",
+      "node3": "Node 3 — MongoDB (America)",
+      "mongo_tickets": "MONGO: REPLICATED TICKETS",
+      "global_distribution": "Global Seat Distribution",
+      "sold_pct": "Sold (73%)",
+      "reserved_pct": "Reserved (3%)",
+      "available": "Available",
+      "top_flights": "Top Revenue Flights"
     }
+  }
 }

@@ -30,10 +30,6 @@ const dbConfig = {
         trustServerCertificate: true // Obligatorio true para dev/certs autofirmados
     }
 };
-        encrypt: false,
-        trustServerCertificate: true 
-    }
-};
 
 let poolContext = null;
 

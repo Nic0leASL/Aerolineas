@@ -63,6 +63,18 @@ export const api = {
             body: JSON.stringify({ origen, destino })
         }),
 
+    getKCheapestRoutes: (origin, destination, k = 3) =>
+        apiFetch('/dijkstra/k-cheapest', {
+            method: 'POST',
+            body: JSON.stringify({ origin, destination, k })
+        }),
+
+    getKFastestRoutes: (origin, destination, k = 3) =>
+        apiFetch('/time-optimized/k-fastest', {
+            method: 'POST',
+            body: JSON.stringify({ origin, destination, k })
+        }),
+
     getFastestRoute: (origen, destino) =>
         apiFetch('/rutas/mas-rapida', {
             method: 'POST',
@@ -111,4 +123,16 @@ export const api = {
         const filename = `Boarding_Pass_${bookingData.flight.id}_${bookingData.seat.seatNumber}.json`;
         return { blob, filename };
     },
+
+    // Dashboard Global
+    getDashboardGlobal: () => apiFetch('/dashboard-global'),
+    getDashboardIngresos: () => apiFetch('/dashboard-global/ingresos'),
+    getReplicationStatus: () => apiFetch('/dashboard-global/replication-status'),
+
+    // Rutas Recomendadas con Escalas
+    getRecommendedRoutes: () => apiFetch('/rutas-recomendadas'),
+    searchRecommendedRoutes: (origen, destino) => apiFetch(`/rutas-recomendadas/buscar?origen=${origen}&destino=${destino}`),
+    getRoutesByRegion: (region) => apiFetch(`/rutas-recomendadas/region/${region}`),
+    getIntraEuropeRoutes: () => apiFetch('/rutas-recomendadas/intra-europa'),
+    getHubsSummary: () => apiFetch('/rutas-recomendadas/hubs'),
 };
