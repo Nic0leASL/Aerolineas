@@ -6,8 +6,8 @@ dotenv.config();
 
 const logger = new Logger(process.env.LOG_LEVEL || 'info');
 
-// URI extraída de variables de entorno (.env)
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/AerolineasMongoDB';
+// URI extraída de variables de entorno (.env) con un fallback robusto en caso de que la terminal se abra en otro path
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://almendrassamuel667_db_user:iRvYRkrKFerm6fW9@cluster0.dzwxwhk.mongodb.net/AerolineasMongoDB';
 
 let isConnected = false;
 

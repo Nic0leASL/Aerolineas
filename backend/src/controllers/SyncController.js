@@ -4,6 +4,8 @@
  */
 
 import Logger from '../utils/logger.js';
+import { getConnection, sql } from '../config/db.js';
+import { TicketModel } from '../models/TicketModel.js';
 
 const logger = new Logger(process.env.LOG_LEVEL || 'info');
 
@@ -73,6 +75,47 @@ export class SyncController {
         newLocalMark: result.newLamportMark,
         newLocalVector: result.newVectorClock ? `[${result.newVectorClock.join(',')}]` : null
       });
+
+      // Espejo Distribuido: Escribir físicamente en la Base de Datos Local
+      if (event.action === 'PURCHASE') {
+        try {
+          if (this.nodeId === 3 || this.nodeId === '3') {
+              const existingTicket = await TicketModel.findOne({ FlightId: event.flightId, SeatNumber: event.seatNumber });
+              if (!existingTicket) {
+                  await TicketModel.create({
+                      FlightId: event.flightId,
+                      PersonId: typeof event.passengerId === 'number' ? event.passengerId : 9999,
+                      SeatNumber: event.seatNumber,
+                      SeatClass: event.seatType || 'ECONOMY_CLASS',
+                      PricePaid: event.ticketPrice || 0,
+                      Status: 'BOOKED',
+                      PurchaseNode: `SYNC_FROM_${sourceNodeId}`
+                  });
+              }
+          } else {
+              const pool = await getConnection();
+              // Verificar si ya existe en la réplica
+              const checkReplica = await pool.request().query(`
+                  SELECT Status FROM Tickets WHERE FlightId = '${event.flightId}' AND SeatNumber = '${event.seatNumber}'
+              `);
+              if (checkReplica.recordset.length === 0) {
+                  // Determinar PersonId basico si viene crudo
+                  let personId = 9999;
+                  if (event.passengerId && !isNaN(event.passengerId)) {
+                      personId = parseInt(event.passengerId);
+                  }
+                  
+                  await pool.request().query(`
+                      INSERT INTO Tickets (FlightId, PersonId, SeatNumber, SeatClass, PricePaid, Status, PurchaseNode)
+                      VALUES ('${event.flightId}', ${personId}, '${event.seatNumber}', '${event.seatType || 'ECONOMY_CLASS'}', ${event.ticketPrice || 0}, 'BOOKED', 'SYNC_FROM_${sourceNodeId}')
+                  `);
+              }
+          }
+          logger.info(`💾 [Replicación Física Exitosa] Boleto de ${sourceNodeId} insertado localmente en Nodo ${this.nodeId}`);
+        } catch(dbErr) {
+          logger.error(`⚠ Error escribiendo réplica física: ${dbErr.message}`);
+        }
+      }
 
       // Respuesta exitosa (202 Accepted indicando procesamiento asincrónico)
       return res.status(202).json({

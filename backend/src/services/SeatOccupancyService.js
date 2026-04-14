@@ -15,17 +15,17 @@ class SeatOccupancyService {
      * @param {Object} config.reservado - % reservado por tipo
      */
     constructor(config = {}) {
-        // Porcentajes por defecto (basados en enunciado típico)
+        // Porcentajes requeridos por la práctica (73% Vendidos, 3% Reservados)
         this.config = {
             vendido: {
-                FIRST_CLASS: config?.vendido?.FIRST_CLASS ?? 30,
-                BUSINESS_CLASS: config?.vendido?.BUSINESS_CLASS ?? 40,
-                ECONOMY_CLASS: config?.vendido?.ECONOMY_CLASS ?? 50
+                FIRST_CLASS: config?.vendido?.FIRST_CLASS ?? 73,
+                BUSINESS_CLASS: config?.vendido?.BUSINESS_CLASS ?? 73,
+                ECONOMY_CLASS: config?.vendido?.ECONOMY_CLASS ?? 73
             },
             reservado: {
-                FIRST_CLASS: config?.reservado?.FIRST_CLASS ?? 20,
-                BUSINESS_CLASS: config?.reservado?.BUSINESS_CLASS ?? 15,
-                ECONOMY_CLASS: config?.reservado?.ECONOMY_CLASS ?? 10
+                FIRST_CLASS: config?.reservado?.FIRST_CLASS ?? 3,
+                BUSINESS_CLASS: config?.reservado?.BUSINESS_CLASS ?? 3,
+                ECONOMY_CLASS: config?.reservado?.ECONOMY_CLASS ?? 3
             }
         };
     }

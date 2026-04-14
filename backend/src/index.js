@@ -58,6 +58,9 @@ import FlightStatusController from './controllers/FlightStatusController.js';
 import flightStatusRoutes from './routes/flightStatusRoutes.js';
 import WalletPassController from './controllers/WalletPassController.js';
 import walletPassRoutes from './routes/walletPassRoutes.js';
+import { connectMongo } from './config/mongoDb.js';
+import { getConnection, sql } from './config/db.js';
+import FlightModel from './models/FlightModel.js';
 
 // Obtener ID del nodo desde variables de entorno
 const nodeId = parseInt(process.env.NODE_ID) || 1;
@@ -138,22 +141,13 @@ const seatOccupancyController = new SeatOccupancyController(seatOccupancyService
 const flightStatusService = new FlightStatusService();
 const flightStatusController = new FlightStatusController(flightStatusService);
 
+// Inicializar Conexión a MongoDB (Obligatorio para Nodo 3, útil para replicación en Nodos 1 y 2)
+connectMongo().catch(err => logger.error('Error inicializando MongoDB:', err));
+
 // Cargar datos iniciales de vuelos
-const possiblePaths = [
-  path.join(process.cwd(), 'flights_cleaned.json'),
-  path.join(process.cwd(), '..', 'flights_cleaned.json')
-];
-
-let flightsPath = possiblePaths.find(p => fs.existsSync(p));
-
-if (flightsPath) {
+async function loadFlightsIntoGraph() {
   try {
-    const fileContent = fs.readFileSync(flightsPath, 'utf-8');
-    const flightsData = JSON.parse(fileContent).data;
-    // Cargar solo los primeros 1000 para no saturar memoria en demo
-    const subset = flightsData.slice(0, 1000);
-    const initializedFlights = [];
-
+    let flights = [];
     const matricesPath = path.join(process.cwd(), 'src/data/matrices');
     let economyPrices = {};
     let firstClassPrices = {};
@@ -168,79 +162,81 @@ if (flightsPath) {
         logger.warn('⚠ No se encontraron matrices en src/data/matrices, usando valores por defecto');
     }
 
+    if (nodeId === 3) {
+      logger.info('🗄 Nodo 3 detectado: Cargando vuelos desde MongoDB Atlas...');
+      const docs = await FlightModel.find({}).lean();
+      
+      flights = docs.map(doc => ({
+        FlightId: doc.flightId,
+        Origin: doc.origin,
+        Destination: doc.destination,
+        DepartureTime: doc.flight_date + 'T' + doc.flight_time,
+        ArrivalTime: doc.flight_date + 'T' + doc.flight_time,
+        Duration: 120,
+        EconomyPrice: 850,
+        Status: doc.status,
+        AircraftId: doc.aircraft_id
+      }));
+
+    } else {
+      const pool = await getConnection();
+      logger.info(`🗄 Nodo ${nodeId} detectado: Cargando vuelos desde SQL Server...`);
+      const result = await pool.request().query(`
+        SELECT FlightId, Origin, Destination, DepartureTime, ArrivalTime, Duration, EconomyPrice, Status, AircraftId
+        FROM Flights
+        ORDER BY DepartureTime
+      `);
+      flights = result.recordset;
+    }
+
+    logger.info(`✈ Vuelos recuperados: ${flights.length}`);
+    const initializedFlights = [];
+
+    const subset = flights; 
+
     subset.forEach(f => {
-      const flightId = f.flightId;
-      const origin = f.origin;
-      const destination = f.destination;
+      const flightId = f.FlightId || f.flightId;
+      const origin = f.Origin || f.origin;
+      const destination = f.Destination || f.destination;
 
-      // Si la matriz oficial indica que NO HAY vuelo directo (es null), se salta la creación
-      if (economyPrices[origin] && economyPrices[origin][destination] === null) {
-          return;
-      }
-
-      const economyPrice = economyPrices[origin]?.[destination] || (Math.floor(Math.random() * 800) + 200);
+      const economyPrice = f.EconomyPrice || economyPrices[origin]?.[destination] || 850;
       const firstClassPrice = firstClassPrices[origin]?.[destination] || Math.round(economyPrice * 2.5);
       const durationHours = flightTimes[origin]?.[destination];
-      const duration = durationHours ? durationHours * 60 : 120; // 120 min por defecto
+      const duration = f.Duration || (durationHours ? durationHours * 60 : 120);
+
+      const depTime = f.DepartureTime ? new Date(f.DepartureTime).toISOString() : '2026-04-14T10:00:00';
+      const arrTime = f.ArrivalTime ? new Date(f.ArrivalTime).toISOString() : depTime;
 
       const flight = flightService.createFlight({
         id: flightId,
         flightNumber: flightId.split('_')[0],
-        aircraft: `Aeronave ${f.aircraft_id}`,
+        aircraft: `Aeronave ${f.AircraftId || f.aircraft_id || 1}`,
         origin: origin,
         destination: destination,
-        departureTime: f.flight_date + 'T' + f.flight_time,
-        arrivalTime: f.flight_date + 'T' + f.flight_time, // Placeholder
-        status: f.status,
+        departureTime: depTime,
+        arrivalTime: arrTime,
+        status: f.Status || f.status || 'SCHEDULED',
         price: economyPrice,
         firstClassPrice: firstClassPrice,
         duration: duration
       });
 
-      seatOccupancyService.simularOcupacion(flight); // Ahora sí, el vuelo ya tiene seats inicializados
+      seatOccupancyService.simularOcupacion(flight);
       initializedFlights.push(flight);
-    });
-
-    // Asegurar que TODAS las rutas posibles de las matrices existan en el grafo (Vuelos Fantasma para que Dijkstra no evalúe nodos desconectados)
-    const airKeys = Object.keys(economyPrices);
-    airKeys.forEach(origin => {
-        if (!economyPrices[origin]) return;
-        Object.keys(economyPrices[origin]).forEach(destination => {
-            const price = economyPrices[origin][destination];
-            if (price !== null) {
-                // Verificar si ya existe vuelo para esta arista
-                if (!initializedFlights.find(f => f.origin === origin && f.destination === destination)) {
-                    const phantomFlight = flightService.createFlight({
-                        id: `${origin}${destination}_PHANTOM_001`,
-                        flightNumber: '9999',
-                        aircraft: `Aeronave Phantom`,
-                        origin: origin,
-                        destination: destination,
-                        departureTime: '2026-04-14T00:00:00',
-                        arrivalTime: '2026-04-14T02:00:00',
-                        status: 'SCHEDULED',
-                        price: price,
-                        firstClassPrice: firstClassPrices[origin]?.[destination] || (price * 2.5),
-                        duration: (flightTimes[origin]?.[destination] || 120) * 60
-                    });
-                    initializedFlights.push(phantomFlight);
-                }
-            }
-        });
     });
 
     graphService.loadFlightsData(initializedFlights);
     graphService.buildGraph();
-
-    logger.info(`✓ Cargados ${subset.length} vuelos desde ${path.basename(flightsPath)}`);
-    // Sincronizar también el controlador de búsqueda con los objetos inicializados
     flightStatusController.setFlightsData(initializedFlights);
+
+    logger.info(`✅ Sistema inicializado con ${initializedFlights.length} vuelos distribuidos.`);
   } catch (error) {
     logger.error('Error cargando vuelos iniciales', { error: error.message });
   }
-} else {
-  logger.warn('⚠ No se encontró flights_cleaned.json en ninguna ruta conocida.');
 }
+
+// Ejecutar carga asíncrona
+loadFlightsIntoGraph();
 
 
 // Inyectar Lamport Clock y Vector Clock en controladores
